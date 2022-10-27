@@ -1,4 +1,4 @@
-module github.com/metablox/did-sdk-go
+module github.com/MetaBloxIO/did-sdk-go
 
 go 1.18
 
