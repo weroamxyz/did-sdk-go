@@ -1,14 +1,13 @@
 package did
 
-var VRType = map[int]string{
-	0: "authentication",
-	1: "assertionMethod",
-	2: "keyAgreement",
-	3: "capabilityInvocation",
-	4: "capabilityDelegation",
-}
+const Secp256k1Sig = "EcdsaSecp256k1Signature2019"
+const Secp256k1Key = "EcdsaSecp256k1RecoveryMethod2020"
+const PurposeAuth = "Authentication"
 
-const (
-	SEPARATOR    = ":"
-	MethodPrefix = "did" + SEPARATOR + "metablox" + SEPARATOR
-)
+const ContextDID = "https://w3id.org/did/v1"
+const ContextCredential = "https://www.w3.org/2018/credentials/v1"
+const ContextSecp256k1 = "https://identity.foundation/EcdsaSecp256k1RecoverySignature2020#"
+
+const TypeCredential = "VerifiableCredential"
+const TypeWifi = "WifiAccess"
+const TypeMining = "MiningLicense"
