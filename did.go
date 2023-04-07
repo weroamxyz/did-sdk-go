@@ -16,9 +16,8 @@ import (
 	"github.com/mr-tron/base58"
 )
 
-//a DID is created by taking a public key, taking its Keccak256 hash, and encoding the hash using base58. We then add 'did:metablox:' to the front
+//DID is created by taking a public key, taking its Keccak256 hash, and encoding the hash using base58. We then add 'did:metablox:' to the front
 
-// convert private key into a did string
 func GenerateDIDString(privKey *ecdsa.PrivateKey) string {
 	pubData := crypto.FromECDSAPub(&privKey.PublicKey)
 
