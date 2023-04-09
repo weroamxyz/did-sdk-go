@@ -10,42 +10,45 @@ import (
 	"github.com/MetaBloxIO/did-sdk-go/registry"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/mitchellh/mapstructure"
+	"math/big"
 	"os"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-var IssuerDID string
-var IssuerPrivateKey *ecdsa.PrivateKey
+var issuerDID string
+var issuerPrivateKey *ecdsa.PrivateKey
+var issuerChainId *big.Int
+
+func GetIssuerDid() string {
+	return issuerDID
+}
+func GetIssuerPrivateKey() *ecdsa.PrivateKey {
+	return issuerPrivateKey
+}
+func GetIssuerChainId() *big.Int {
+	return issuerChainId
+}
 
 // All credential ids use a format of this value plus a number. ex. 'http://metablox.com/credentials/5'
 // Only the number is stored in the db as the ID; the full string is only used in formal credentials
 const BaseIDString = "http://metablox.com/credentials/"
 
-// read in private key for issuer and generate the DID from it
-//func Init() error {
-//	var err error
-//	IssuerPrivateKey, err = key.GetIssuerPrivateKey()
-//	if err != nil {
-//		return err
-//	}
-//	IssuerDID = did.GenerateDIDString(IssuerPrivateKey)
-//	return nil
-//}
-
 type Config struct {
-	Passphrase string `json:"passphrase"`
-	Keystore   string `json:"keystore"`
+	Passphrase string   `json:"passphrase"`
+	Keystore   string   `json:"keystore"`
+	ChainId    *big.Int `json:"chainId"`
 }
 
 func Init(cfg *Config) error {
 	var err error
-	IssuerPrivateKey, err = keystoreToPrivateKey(cfg.Keystore, cfg.Passphrase)
+	issuerPrivateKey, err = keystoreToPrivateKey(cfg.Keystore, cfg.Passphrase)
 	if err != nil {
 		return err
 	}
-	IssuerDID = GenerateDIDString(IssuerPrivateKey)
+	issuerDID = GenerateDIDString(issuerPrivateKey)
+	issuerChainId = cfg.ChainId
 	return nil
 }
 
@@ -71,7 +74,7 @@ func CreateProof(vm string) VCProof {
 	vcProof.JWSSignature = ""
 	vcProof.Created = time.Now().Format(time.RFC3339)
 	vcProof.ProofPurpose = PurposeAuth
-	vcProof.PublicKeyString = crypto.FromECDSAPub(&IssuerPrivateKey.PublicKey)
+	vcProof.PublicKeyString = crypto.FromECDSAPub(&issuerPrivateKey.PublicKey)
 	return *vcProof
 }
 
@@ -144,7 +147,7 @@ func JsonToVC(jsonVC []byte) (*VerifiableCredential, error) {
 // Need to make sure that the stated issuer of the VC actually created it (using the proof alongside the issuer's verification methods),
 // as well as check that the issuer is a trusted source
 func VerifyVC(vc *VerifiableCredential, registry *registry.Registry) (bool, error) {
-	if vc.Issuer != IssuerDID { //issuer of VC must be the same issuer stored here
+	if vc.Issuer != issuerDID { //issuer of VC must be the same issuer stored here
 		return false, ErrUnknownIssuer
 	}
 

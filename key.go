@@ -66,7 +66,7 @@ func VerifyJWSSignature(signature string, pubKey *ecdsa.PublicKey, message []byt
 // make sure that the address created from pubKey matches the address stored in vm's BlockChainAccountId field
 func CompareAddresses(vm VerificationMethod, pubKey *ecdsa.PublicKey) bool {
 	givenAddress := crypto.PubkeyToAddress(*pubKey)
-	givenAccountID := "eip155:1666600000:" + givenAddress.Hex()
+	givenAccountID := "eip155:" + issuerChainId.String() + ":" + givenAddress.Hex()
 	if vm.BlockchainAccountId != givenAccountID {
 		return false
 	}

@@ -44,7 +44,7 @@ func CreateDID(privKey *ecdsa.PrivateKey) *DIDDocument {
 
 	VM := VerificationMethod{}
 	VM.ID = document.ID + "#verification"
-	VM.BlockchainAccountId = "eip155:1666600000:" + address.Hex()
+	VM.BlockchainAccountId = "eip155:" + issuerChainId.String() + ":" + address.Hex()
 	VM.Controller = document.ID
 	VM.MethodType = Secp256k1Key
 
@@ -139,7 +139,7 @@ func GetDocument(targetDID string, registry *registry.Registry) (*DIDDocument, [
 
 	VM := VerificationMethod{}
 	VM.ID = document.ID + "#verification"
-	VM.BlockchainAccountId = "eip155:1666600000:" + address.Hex()
+	VM.BlockchainAccountId = "eip155:" + issuerChainId.String() + ":" + address.Hex()
 	VM.Controller = document.ID
 	VM.MethodType = Secp256k1Key
 
