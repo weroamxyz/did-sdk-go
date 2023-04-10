@@ -33,7 +33,7 @@ func GetIssuerChainId() *big.Int {
 
 // All credential ids use a format of this value plus a number. ex. 'http://metablox.com/credentials/5'
 // Only the number is stored in the db as the ID; the full string is only used in formal credentials
-const BaseIDString = "http://metablox.com/credentials/"
+const BaseIDString = "https://metablox.io/credentials/"
 
 type Config struct {
 	Passphrase string   `json:"passphrase"`
@@ -72,7 +72,7 @@ func CreateProof(vm string) VCProof {
 	vcProof.Type = Secp256k1Sig
 	vcProof.VerificationMethod = vm
 	vcProof.JWSSignature = ""
-	vcProof.Created = time.Now().Format(time.RFC3339)
+	vcProof.Created = time.Now().UTC().Format(time.RFC3339)
 	vcProof.ProofPurpose = PurposeAuth
 	vcProof.PublicKeyString = crypto.FromECDSAPub(&issuerPrivateKey.PublicKey)
 	return *vcProof
