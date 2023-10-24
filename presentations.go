@@ -5,10 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"errors"
-	"github.com/MetaBloxIO/did-sdk-go/registry"
 	"time"
-
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // create a presentation using 1 or more credentials. Currently unused
@@ -20,7 +17,6 @@ func CreatePresentation(credentials []VerifiableCredential, holderDocument DIDDo
 	presentationProof.Created = time.Now().Format(time.RFC3339)
 	presentationProof.ProofPurpose = "Authentication"
 	presentationProof.Nonce = nonce
-	presentationProof.PublicKeyString = crypto.FromECDSAPub(&holderPrivKey.PublicKey)
 	context := []string{ContextSecp256k1, ContextCredential}
 	presentationType := []string{"VerifiablePresentation"}
 	presentation := NewPresentation(context, presentationType, credentials, holderDocument.ID, *presentationProof)
@@ -42,19 +38,14 @@ func CreatePresentation(credentials []VerifiableCredential, holderDocument DIDDo
 
 // Verify a presentation. Need to first verify the presentation's proof using the holder's DID document.
 // Afterwards, need to verify the proof of each credential included inside the presentation
-func VerifyVP(presentation *VerifiablePresentation, registry *registry.Registry) (bool, error) {
+func VerifyVP(presentation *VerifiablePresentation, bound *BoundedContract) (bool, error) {
 
-	resolutionMeta, holderDoc, _ := Resolve(presentation.Holder, CreateResolutionOptions(), registry)
+	resolutionMeta, holderDoc, _ := Resolve(presentation.Holder, CreateResolutionOptions(), bound)
 	if resolutionMeta.Error != "" {
 		return false, errors.New(resolutionMeta.Error)
 	}
 
 	targetVM, err := holderDoc.RetrieveVerificationMethod(presentation.Proof.VerificationMethod)
-	if err != nil {
-		return false, err
-	}
-
-	holderKey, err := crypto.UnmarshalPubkey(presentation.Proof.PublicKeyString)
 	if err != nil {
 		return false, err
 	}
@@ -67,12 +58,7 @@ func VerifyVP(presentation *VerifiablePresentation, registry *registry.Registry)
 			return false, ErrSecp256k1WrongVMType
 		}
 
-		success = CompareAddresses(targetVM, holderKey) //vm must have the address that matches the proof's public key
-		if !success {
-			return false, ErrWrongAddress
-		}
-
-		success, err = VerifyVPSecp256k1(presentation, holderKey)
+		success, err = VerifyVPSecp256k1(presentation, targetVM.BlockchainAccountId)
 	default:
 		return false, ErrUnknownProofType
 	}
@@ -82,7 +68,7 @@ func VerifyVP(presentation *VerifiablePresentation, registry *registry.Registry)
 	}
 
 	for _, credential := range presentation.VerifiableCredential { //verify each individual credential stored in the presentation
-		success, err = VerifyVC(&credential, registry)
+		success, err = VerifyVC(&credential, bound)
 		if !success {
 			return false, err
 		}
@@ -94,13 +80,13 @@ func VerifyVP(presentation *VerifiablePresentation, registry *registry.Registry)
 // Verify that the provided public key matches the signature in the proof.
 // Since we've made sure that the address in the holder vm matches this public key,
 // verifying the signature here proves that the signature was made with the holder's private key
-func VerifyVPSecp256k1(presentation *VerifiablePresentation, pubKey *ecdsa.PublicKey) (bool, error) {
+func VerifyVPSecp256k1(presentation *VerifiablePresentation, expectedBlkID string) (bool, error) {
 	copiedVP := *presentation
 	//have to make sure to remove the signature from the copy, as the original did not have a signature at the time the signature was generated
 	copiedVP.Proof.JWSSignature = ""
 	hashedVP := sha256.Sum256(ConvertVPToBytes(copiedVP))
 
-	result, err := VerifyJWSSignature(presentation.Proof.JWSSignature, pubKey, hashedVP[:])
+	result, err := VerifyJWSSignature(presentation.Proof.JWSSignature, expectedBlkID, hashedVP[:])
 	if err != nil {
 		return false, err
 	}
@@ -123,6 +109,5 @@ func ConvertVPToBytes(vp VerifiablePresentation) []byte {
 		convertedBytes = bytes.Join([][]byte{convertedBytes, ConvertVCToBytes(item)}, []byte{})
 	}
 
-	convertedBytes = bytes.Join([][]byte{convertedBytes, []byte(vp.Holder), []byte(vp.Proof.Type), []byte(vp.Proof.Created), []byte(vp.Proof.VerificationMethod), []byte(vp.Proof.ProofPurpose), []byte(vp.Proof.JWSSignature), []byte(vp.Proof.Nonce), vp.Proof.PublicKeyString}, []byte{})
 	return convertedBytes
 }

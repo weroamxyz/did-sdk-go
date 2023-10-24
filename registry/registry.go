@@ -26,11 +26,12 @@ var (
 	_ = common.Big1
 	_ = types.BloomLookup
 	_ = event.NewSubscription
+	_ = abi.ConvertType
 )
 
 // RegistryMetaData contains all meta data concerning the Registry contract.
 var RegistryMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"string\",\"name\":\"did\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"value\",\"type\":\"bytes\"}],\"name\":\"DIDAttributeChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"string\",\"name\":\"vcName\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"value\",\"type\":\"bytes\"}],\"name\":\"VCSchemaChanged\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"changed\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"did\",\"type\":\"string\"},{\"internalType\":\"uint8\",\"name\":\"sigV\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"sigR\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"sigS\",\"type\":\"bytes32\"}],\"name\":\"createVcDef\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"name\":\"dids\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"nonce\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"did\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"sigV\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"sigR\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"sigS\",\"type\":\"bytes32\"}],\"name\":\"registerDid\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"did\",\"type\":\"string\"},{\"internalType\":\"uint8\",\"name\":\"sigV\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"sigR\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"sigS\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"value\",\"type\":\"bytes\"}],\"name\":\"setAttributeSigned\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"vcName\",\"type\":\"string\"},{\"internalType\":\"uint8\",\"name\":\"sigV\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"sigR\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"sigS\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"value\",\"type\":\"bytes\"}],\"name\":\"setVcAttributeSigned\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"did\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"nSigV\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"nSigR\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"nSigS\",\"type\":\"bytes32\"},{\"internalType\":\"uint8\",\"name\":\"oSigV\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"oSigR\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"oSigS\",\"type\":\"bytes32\"}],\"name\":\"updateDid\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"name\":\"vcIssuers\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"currentNonce\",\"type\":\"uint256\"}],\"name\":\"InvalidAccountNonce\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidShortString\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"str\",\"type\":\"string\"}],\"name\":\"StringTooLong\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"value\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"validTo\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"previousChange\",\"type\":\"uint256\"}],\"name\":\"DIDAttributeChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"oldController\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newController\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"previousChange\",\"type\":\"uint256\"}],\"name\":\"DIDControllerChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"delegateType\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"delegate\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"validTo\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"previousChange\",\"type\":\"uint256\"}],\"name\":\"DIDDelegateChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"EIP712DomainChanged\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"DOMAIN_SEPARATOR\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"delegateType\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"delegate\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"validity\",\"type\":\"uint256\"}],\"name\":\"addDelegate\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"delegateType\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"delegate\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"validity\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"addDelegatePermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"newController\",\"type\":\"address\"}],\"name\":\"changeController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"newController\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"changeControllerPermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"changed\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"delegates\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"eip712Domain\",\"outputs\":[{\"internalType\":\"bytes1\",\"name\":\"fields\",\"type\":\"bytes1\"},{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"version\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"chainId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"verifyingContract\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"salt\",\"type\":\"bytes32\"},{\"internalType\":\"uint256[]\",\"name\":\"extensions\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"}],\"name\":\"getController\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"nonces\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"value\",\"type\":\"bytes\"}],\"name\":\"revokeAttribute\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"value\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"revokeAttributePermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"delegateType\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"delegate\",\"type\":\"address\"}],\"name\":\"revokeDelegate\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"delegateType\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"delegate\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"revokeDelegatePermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"value\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"validity\",\"type\":\"uint256\"}],\"name\":\"setAttribute\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"value\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"validity\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"setAttributePermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"did\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"delegateType\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"delegate\",\"type\":\"address\"}],\"name\":\"validDelegate\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // RegistryABI is the input ABI used to generate the binding from.
@@ -134,11 +135,11 @@ func NewRegistryFilterer(address common.Address, filterer bind.ContractFilterer)
 
 // bindRegistry binds a generic wrapper to an already deployed contract.
 func bindRegistry(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(RegistryABI))
+	parsed, err := RegistryMetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
-	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+	return bind.NewBoundContract(address, *parsed, caller, transactor, filterer), nil
 }
 
 // Call invokes the (constant) contract method with params as input values and
@@ -179,6 +180,37 @@ func (_Registry *RegistryTransactorRaw) Transact(opts *bind.TransactOpts, method
 	return _Registry.Contract.contract.Transact(opts, method, params...)
 }
 
+// DOMAINSEPARATOR is a free data retrieval call binding the contract method 0x3644e515.
+//
+// Solidity: function DOMAIN_SEPARATOR() view returns(bytes32)
+func (_Registry *RegistryCaller) DOMAINSEPARATOR(opts *bind.CallOpts) ([32]byte, error) {
+	var out []interface{}
+	err := _Registry.contract.Call(opts, &out, "DOMAIN_SEPARATOR")
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// DOMAINSEPARATOR is a free data retrieval call binding the contract method 0x3644e515.
+//
+// Solidity: function DOMAIN_SEPARATOR() view returns(bytes32)
+func (_Registry *RegistrySession) DOMAINSEPARATOR() ([32]byte, error) {
+	return _Registry.Contract.DOMAINSEPARATOR(&_Registry.CallOpts)
+}
+
+// DOMAINSEPARATOR is a free data retrieval call binding the contract method 0x3644e515.
+//
+// Solidity: function DOMAIN_SEPARATOR() view returns(bytes32)
+func (_Registry *RegistryCallerSession) DOMAINSEPARATOR() ([32]byte, error) {
+	return _Registry.Contract.DOMAINSEPARATOR(&_Registry.CallOpts)
+}
+
 // Changed is a free data retrieval call binding the contract method 0xf96d0f9f.
 //
 // Solidity: function changed(address ) view returns(uint256)
@@ -210,43 +242,12 @@ func (_Registry *RegistryCallerSession) Changed(arg0 common.Address) (*big.Int, 
 	return _Registry.Contract.Changed(&_Registry.CallOpts, arg0)
 }
 
-// Dids is a free data retrieval call binding the contract method 0xf44ab516.
+// Delegates is a free data retrieval call binding the contract method 0x0d44625b.
 //
-// Solidity: function dids(string ) view returns(address)
-func (_Registry *RegistryCaller) Dids(opts *bind.CallOpts, arg0 string) (common.Address, error) {
+// Solidity: function delegates(address , bytes32 , address ) view returns(uint256)
+func (_Registry *RegistryCaller) Delegates(opts *bind.CallOpts, arg0 common.Address, arg1 [32]byte, arg2 common.Address) (*big.Int, error) {
 	var out []interface{}
-	err := _Registry.contract.Call(opts, &out, "dids", arg0)
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// Dids is a free data retrieval call binding the contract method 0xf44ab516.
-//
-// Solidity: function dids(string ) view returns(address)
-func (_Registry *RegistrySession) Dids(arg0 string) (common.Address, error) {
-	return _Registry.Contract.Dids(&_Registry.CallOpts, arg0)
-}
-
-// Dids is a free data retrieval call binding the contract method 0xf44ab516.
-//
-// Solidity: function dids(string ) view returns(address)
-func (_Registry *RegistryCallerSession) Dids(arg0 string) (common.Address, error) {
-	return _Registry.Contract.Dids(&_Registry.CallOpts, arg0)
-}
-
-// Nonce is a free data retrieval call binding the contract method 0x70ae92d2.
-//
-// Solidity: function nonce(address ) view returns(uint256)
-func (_Registry *RegistryCaller) Nonce(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var out []interface{}
-	err := _Registry.contract.Call(opts, &out, "nonce", arg0)
+	err := _Registry.contract.Call(opts, &out, "delegates", arg0, arg1, arg2)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -258,154 +259,391 @@ func (_Registry *RegistryCaller) Nonce(opts *bind.CallOpts, arg0 common.Address)
 
 }
 
-// Nonce is a free data retrieval call binding the contract method 0x70ae92d2.
+// Delegates is a free data retrieval call binding the contract method 0x0d44625b.
 //
-// Solidity: function nonce(address ) view returns(uint256)
-func (_Registry *RegistrySession) Nonce(arg0 common.Address) (*big.Int, error) {
-	return _Registry.Contract.Nonce(&_Registry.CallOpts, arg0)
+// Solidity: function delegates(address , bytes32 , address ) view returns(uint256)
+func (_Registry *RegistrySession) Delegates(arg0 common.Address, arg1 [32]byte, arg2 common.Address) (*big.Int, error) {
+	return _Registry.Contract.Delegates(&_Registry.CallOpts, arg0, arg1, arg2)
 }
 
-// Nonce is a free data retrieval call binding the contract method 0x70ae92d2.
+// Delegates is a free data retrieval call binding the contract method 0x0d44625b.
 //
-// Solidity: function nonce(address ) view returns(uint256)
-func (_Registry *RegistryCallerSession) Nonce(arg0 common.Address) (*big.Int, error) {
-	return _Registry.Contract.Nonce(&_Registry.CallOpts, arg0)
+// Solidity: function delegates(address , bytes32 , address ) view returns(uint256)
+func (_Registry *RegistryCallerSession) Delegates(arg0 common.Address, arg1 [32]byte, arg2 common.Address) (*big.Int, error) {
+	return _Registry.Contract.Delegates(&_Registry.CallOpts, arg0, arg1, arg2)
 }
 
-// VcIssuers is a free data retrieval call binding the contract method 0x52b1cf64.
+// Eip712Domain is a free data retrieval call binding the contract method 0x84b0196e.
 //
-// Solidity: function vcIssuers(string ) view returns(string)
-func (_Registry *RegistryCaller) VcIssuers(opts *bind.CallOpts, arg0 string) (string, error) {
+// Solidity: function eip712Domain() view returns(bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)
+func (_Registry *RegistryCaller) Eip712Domain(opts *bind.CallOpts) (struct {
+	Fields            [1]byte
+	Name              string
+	Version           string
+	ChainId           *big.Int
+	VerifyingContract common.Address
+	Salt              [32]byte
+	Extensions        []*big.Int
+}, error) {
 	var out []interface{}
-	err := _Registry.contract.Call(opts, &out, "vcIssuers", arg0)
+	err := _Registry.contract.Call(opts, &out, "eip712Domain")
 
+	outstruct := new(struct {
+		Fields            [1]byte
+		Name              string
+		Version           string
+		ChainId           *big.Int
+		VerifyingContract common.Address
+		Salt              [32]byte
+		Extensions        []*big.Int
+	})
 	if err != nil {
-		return *new(string), err
+		return *outstruct, err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(string)).(*string)
+	outstruct.Fields = *abi.ConvertType(out[0], new([1]byte)).(*[1]byte)
+	outstruct.Name = *abi.ConvertType(out[1], new(string)).(*string)
+	outstruct.Version = *abi.ConvertType(out[2], new(string)).(*string)
+	outstruct.ChainId = *abi.ConvertType(out[3], new(*big.Int)).(**big.Int)
+	outstruct.VerifyingContract = *abi.ConvertType(out[4], new(common.Address)).(*common.Address)
+	outstruct.Salt = *abi.ConvertType(out[5], new([32]byte)).(*[32]byte)
+	outstruct.Extensions = *abi.ConvertType(out[6], new([]*big.Int)).(*[]*big.Int)
+
+	return *outstruct, err
+
+}
+
+// Eip712Domain is a free data retrieval call binding the contract method 0x84b0196e.
+//
+// Solidity: function eip712Domain() view returns(bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)
+func (_Registry *RegistrySession) Eip712Domain() (struct {
+	Fields            [1]byte
+	Name              string
+	Version           string
+	ChainId           *big.Int
+	VerifyingContract common.Address
+	Salt              [32]byte
+	Extensions        []*big.Int
+}, error) {
+	return _Registry.Contract.Eip712Domain(&_Registry.CallOpts)
+}
+
+// Eip712Domain is a free data retrieval call binding the contract method 0x84b0196e.
+//
+// Solidity: function eip712Domain() view returns(bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)
+func (_Registry *RegistryCallerSession) Eip712Domain() (struct {
+	Fields            [1]byte
+	Name              string
+	Version           string
+	ChainId           *big.Int
+	VerifyingContract common.Address
+	Salt              [32]byte
+	Extensions        []*big.Int
+}, error) {
+	return _Registry.Contract.Eip712Domain(&_Registry.CallOpts)
+}
+
+// GetController is a free data retrieval call binding the contract method 0x88c662aa.
+//
+// Solidity: function getController(address did) view returns(address)
+func (_Registry *RegistryCaller) GetController(opts *bind.CallOpts, did common.Address) (common.Address, error) {
+	var out []interface{}
+	err := _Registry.contract.Call(opts, &out, "getController", did)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
 
 	return out0, err
 
 }
 
-// VcIssuers is a free data retrieval call binding the contract method 0x52b1cf64.
+// GetController is a free data retrieval call binding the contract method 0x88c662aa.
 //
-// Solidity: function vcIssuers(string ) view returns(string)
-func (_Registry *RegistrySession) VcIssuers(arg0 string) (string, error) {
-	return _Registry.Contract.VcIssuers(&_Registry.CallOpts, arg0)
+// Solidity: function getController(address did) view returns(address)
+func (_Registry *RegistrySession) GetController(did common.Address) (common.Address, error) {
+	return _Registry.Contract.GetController(&_Registry.CallOpts, did)
 }
 
-// VcIssuers is a free data retrieval call binding the contract method 0x52b1cf64.
+// GetController is a free data retrieval call binding the contract method 0x88c662aa.
 //
-// Solidity: function vcIssuers(string ) view returns(string)
-func (_Registry *RegistryCallerSession) VcIssuers(arg0 string) (string, error) {
-	return _Registry.Contract.VcIssuers(&_Registry.CallOpts, arg0)
+// Solidity: function getController(address did) view returns(address)
+func (_Registry *RegistryCallerSession) GetController(did common.Address) (common.Address, error) {
+	return _Registry.Contract.GetController(&_Registry.CallOpts, did)
 }
 
-// CreateVcDef is a paid mutator transaction binding the contract method 0x4d618c5e.
+// Nonces is a free data retrieval call binding the contract method 0x7ecebe00.
 //
-// Solidity: function createVcDef(string name, string did, uint8 sigV, bytes32 sigR, bytes32 sigS) returns()
-func (_Registry *RegistryTransactor) CreateVcDef(opts *bind.TransactOpts, name string, did string, sigV uint8, sigR [32]byte, sigS [32]byte) (*types.Transaction, error) {
-	return _Registry.contract.Transact(opts, "createVcDef", name, did, sigV, sigR, sigS)
+// Solidity: function nonces(address owner) view returns(uint256)
+func (_Registry *RegistryCaller) Nonces(opts *bind.CallOpts, owner common.Address) (*big.Int, error) {
+	var out []interface{}
+	err := _Registry.contract.Call(opts, &out, "nonces", owner)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
-// CreateVcDef is a paid mutator transaction binding the contract method 0x4d618c5e.
+// Nonces is a free data retrieval call binding the contract method 0x7ecebe00.
 //
-// Solidity: function createVcDef(string name, string did, uint8 sigV, bytes32 sigR, bytes32 sigS) returns()
-func (_Registry *RegistrySession) CreateVcDef(name string, did string, sigV uint8, sigR [32]byte, sigS [32]byte) (*types.Transaction, error) {
-	return _Registry.Contract.CreateVcDef(&_Registry.TransactOpts, name, did, sigV, sigR, sigS)
+// Solidity: function nonces(address owner) view returns(uint256)
+func (_Registry *RegistrySession) Nonces(owner common.Address) (*big.Int, error) {
+	return _Registry.Contract.Nonces(&_Registry.CallOpts, owner)
 }
 
-// CreateVcDef is a paid mutator transaction binding the contract method 0x4d618c5e.
+// Nonces is a free data retrieval call binding the contract method 0x7ecebe00.
 //
-// Solidity: function createVcDef(string name, string did, uint8 sigV, bytes32 sigR, bytes32 sigS) returns()
-func (_Registry *RegistryTransactorSession) CreateVcDef(name string, did string, sigV uint8, sigR [32]byte, sigS [32]byte) (*types.Transaction, error) {
-	return _Registry.Contract.CreateVcDef(&_Registry.TransactOpts, name, did, sigV, sigR, sigS)
+// Solidity: function nonces(address owner) view returns(uint256)
+func (_Registry *RegistryCallerSession) Nonces(owner common.Address) (*big.Int, error) {
+	return _Registry.Contract.Nonces(&_Registry.CallOpts, owner)
 }
 
-// RegisterDid is a paid mutator transaction binding the contract method 0xd0923626.
+// ValidDelegate is a free data retrieval call binding the contract method 0x622b2a3c.
 //
-// Solidity: function registerDid(string did, address account, uint8 sigV, bytes32 sigR, bytes32 sigS) returns()
-func (_Registry *RegistryTransactor) RegisterDid(opts *bind.TransactOpts, did string, account common.Address, sigV uint8, sigR [32]byte, sigS [32]byte) (*types.Transaction, error) {
-	return _Registry.contract.Transact(opts, "registerDid", did, account, sigV, sigR, sigS)
+// Solidity: function validDelegate(address did, bytes32 delegateType, address delegate) view returns(bool)
+func (_Registry *RegistryCaller) ValidDelegate(opts *bind.CallOpts, did common.Address, delegateType [32]byte, delegate common.Address) (bool, error) {
+	var out []interface{}
+	err := _Registry.contract.Call(opts, &out, "validDelegate", did, delegateType, delegate)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
 }
 
-// RegisterDid is a paid mutator transaction binding the contract method 0xd0923626.
+// ValidDelegate is a free data retrieval call binding the contract method 0x622b2a3c.
 //
-// Solidity: function registerDid(string did, address account, uint8 sigV, bytes32 sigR, bytes32 sigS) returns()
-func (_Registry *RegistrySession) RegisterDid(did string, account common.Address, sigV uint8, sigR [32]byte, sigS [32]byte) (*types.Transaction, error) {
-	return _Registry.Contract.RegisterDid(&_Registry.TransactOpts, did, account, sigV, sigR, sigS)
+// Solidity: function validDelegate(address did, bytes32 delegateType, address delegate) view returns(bool)
+func (_Registry *RegistrySession) ValidDelegate(did common.Address, delegateType [32]byte, delegate common.Address) (bool, error) {
+	return _Registry.Contract.ValidDelegate(&_Registry.CallOpts, did, delegateType, delegate)
 }
 
-// RegisterDid is a paid mutator transaction binding the contract method 0xd0923626.
+// ValidDelegate is a free data retrieval call binding the contract method 0x622b2a3c.
 //
-// Solidity: function registerDid(string did, address account, uint8 sigV, bytes32 sigR, bytes32 sigS) returns()
-func (_Registry *RegistryTransactorSession) RegisterDid(did string, account common.Address, sigV uint8, sigR [32]byte, sigS [32]byte) (*types.Transaction, error) {
-	return _Registry.Contract.RegisterDid(&_Registry.TransactOpts, did, account, sigV, sigR, sigS)
+// Solidity: function validDelegate(address did, bytes32 delegateType, address delegate) view returns(bool)
+func (_Registry *RegistryCallerSession) ValidDelegate(did common.Address, delegateType [32]byte, delegate common.Address) (bool, error) {
+	return _Registry.Contract.ValidDelegate(&_Registry.CallOpts, did, delegateType, delegate)
 }
 
-// SetAttributeSigned is a paid mutator transaction binding the contract method 0xbb55343f.
+// AddDelegate is a paid mutator transaction binding the contract method 0xa7068d66.
 //
-// Solidity: function setAttributeSigned(string did, uint8 sigV, bytes32 sigR, bytes32 sigS, bytes32 name, bytes value) returns()
-func (_Registry *RegistryTransactor) SetAttributeSigned(opts *bind.TransactOpts, did string, sigV uint8, sigR [32]byte, sigS [32]byte, name [32]byte, value []byte) (*types.Transaction, error) {
-	return _Registry.contract.Transact(opts, "setAttributeSigned", did, sigV, sigR, sigS, name, value)
+// Solidity: function addDelegate(address did, bytes32 delegateType, address delegate, uint256 validity) returns()
+func (_Registry *RegistryTransactor) AddDelegate(opts *bind.TransactOpts, did common.Address, delegateType [32]byte, delegate common.Address, validity *big.Int) (*types.Transaction, error) {
+	return _Registry.contract.Transact(opts, "addDelegate", did, delegateType, delegate, validity)
 }
 
-// SetAttributeSigned is a paid mutator transaction binding the contract method 0xbb55343f.
+// AddDelegate is a paid mutator transaction binding the contract method 0xa7068d66.
 //
-// Solidity: function setAttributeSigned(string did, uint8 sigV, bytes32 sigR, bytes32 sigS, bytes32 name, bytes value) returns()
-func (_Registry *RegistrySession) SetAttributeSigned(did string, sigV uint8, sigR [32]byte, sigS [32]byte, name [32]byte, value []byte) (*types.Transaction, error) {
-	return _Registry.Contract.SetAttributeSigned(&_Registry.TransactOpts, did, sigV, sigR, sigS, name, value)
+// Solidity: function addDelegate(address did, bytes32 delegateType, address delegate, uint256 validity) returns()
+func (_Registry *RegistrySession) AddDelegate(did common.Address, delegateType [32]byte, delegate common.Address, validity *big.Int) (*types.Transaction, error) {
+	return _Registry.Contract.AddDelegate(&_Registry.TransactOpts, did, delegateType, delegate, validity)
 }
 
-// SetAttributeSigned is a paid mutator transaction binding the contract method 0xbb55343f.
+// AddDelegate is a paid mutator transaction binding the contract method 0xa7068d66.
 //
-// Solidity: function setAttributeSigned(string did, uint8 sigV, bytes32 sigR, bytes32 sigS, bytes32 name, bytes value) returns()
-func (_Registry *RegistryTransactorSession) SetAttributeSigned(did string, sigV uint8, sigR [32]byte, sigS [32]byte, name [32]byte, value []byte) (*types.Transaction, error) {
-	return _Registry.Contract.SetAttributeSigned(&_Registry.TransactOpts, did, sigV, sigR, sigS, name, value)
+// Solidity: function addDelegate(address did, bytes32 delegateType, address delegate, uint256 validity) returns()
+func (_Registry *RegistryTransactorSession) AddDelegate(did common.Address, delegateType [32]byte, delegate common.Address, validity *big.Int) (*types.Transaction, error) {
+	return _Registry.Contract.AddDelegate(&_Registry.TransactOpts, did, delegateType, delegate, validity)
 }
 
-// SetVcAttributeSigned is a paid mutator transaction binding the contract method 0x46f4303a.
+// AddDelegatePermit is a paid mutator transaction binding the contract method 0xfe2f0b11.
 //
-// Solidity: function setVcAttributeSigned(string vcName, uint8 sigV, bytes32 sigR, bytes32 sigS, bytes32 name, bytes value) returns()
-func (_Registry *RegistryTransactor) SetVcAttributeSigned(opts *bind.TransactOpts, vcName string, sigV uint8, sigR [32]byte, sigS [32]byte, name [32]byte, value []byte) (*types.Transaction, error) {
-	return _Registry.contract.Transact(opts, "setVcAttributeSigned", vcName, sigV, sigR, sigS, name, value)
+// Solidity: function addDelegatePermit(address did, bytes32 delegateType, address delegate, uint256 validity, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistryTransactor) AddDelegatePermit(opts *bind.TransactOpts, did common.Address, delegateType [32]byte, delegate common.Address, validity *big.Int, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.contract.Transact(opts, "addDelegatePermit", did, delegateType, delegate, validity, deadline, signature)
 }
 
-// SetVcAttributeSigned is a paid mutator transaction binding the contract method 0x46f4303a.
+// AddDelegatePermit is a paid mutator transaction binding the contract method 0xfe2f0b11.
 //
-// Solidity: function setVcAttributeSigned(string vcName, uint8 sigV, bytes32 sigR, bytes32 sigS, bytes32 name, bytes value) returns()
-func (_Registry *RegistrySession) SetVcAttributeSigned(vcName string, sigV uint8, sigR [32]byte, sigS [32]byte, name [32]byte, value []byte) (*types.Transaction, error) {
-	return _Registry.Contract.SetVcAttributeSigned(&_Registry.TransactOpts, vcName, sigV, sigR, sigS, name, value)
+// Solidity: function addDelegatePermit(address did, bytes32 delegateType, address delegate, uint256 validity, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistrySession) AddDelegatePermit(did common.Address, delegateType [32]byte, delegate common.Address, validity *big.Int, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.Contract.AddDelegatePermit(&_Registry.TransactOpts, did, delegateType, delegate, validity, deadline, signature)
 }
 
-// SetVcAttributeSigned is a paid mutator transaction binding the contract method 0x46f4303a.
+// AddDelegatePermit is a paid mutator transaction binding the contract method 0xfe2f0b11.
 //
-// Solidity: function setVcAttributeSigned(string vcName, uint8 sigV, bytes32 sigR, bytes32 sigS, bytes32 name, bytes value) returns()
-func (_Registry *RegistryTransactorSession) SetVcAttributeSigned(vcName string, sigV uint8, sigR [32]byte, sigS [32]byte, name [32]byte, value []byte) (*types.Transaction, error) {
-	return _Registry.Contract.SetVcAttributeSigned(&_Registry.TransactOpts, vcName, sigV, sigR, sigS, name, value)
+// Solidity: function addDelegatePermit(address did, bytes32 delegateType, address delegate, uint256 validity, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistryTransactorSession) AddDelegatePermit(did common.Address, delegateType [32]byte, delegate common.Address, validity *big.Int, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.Contract.AddDelegatePermit(&_Registry.TransactOpts, did, delegateType, delegate, validity, deadline, signature)
 }
 
-// UpdateDid is a paid mutator transaction binding the contract method 0xb6f8a115.
+// ChangeController is a paid mutator transaction binding the contract method 0x3e11e378.
 //
-// Solidity: function updateDid(string did, address account, uint8 nSigV, bytes32 nSigR, bytes32 nSigS, uint8 oSigV, bytes32 oSigR, bytes32 oSigS) returns()
-func (_Registry *RegistryTransactor) UpdateDid(opts *bind.TransactOpts, did string, account common.Address, nSigV uint8, nSigR [32]byte, nSigS [32]byte, oSigV uint8, oSigR [32]byte, oSigS [32]byte) (*types.Transaction, error) {
-	return _Registry.contract.Transact(opts, "updateDid", did, account, nSigV, nSigR, nSigS, oSigV, oSigR, oSigS)
+// Solidity: function changeController(address did, address newController) returns()
+func (_Registry *RegistryTransactor) ChangeController(opts *bind.TransactOpts, did common.Address, newController common.Address) (*types.Transaction, error) {
+	return _Registry.contract.Transact(opts, "changeController", did, newController)
 }
 
-// UpdateDid is a paid mutator transaction binding the contract method 0xb6f8a115.
+// ChangeController is a paid mutator transaction binding the contract method 0x3e11e378.
 //
-// Solidity: function updateDid(string did, address account, uint8 nSigV, bytes32 nSigR, bytes32 nSigS, uint8 oSigV, bytes32 oSigR, bytes32 oSigS) returns()
-func (_Registry *RegistrySession) UpdateDid(did string, account common.Address, nSigV uint8, nSigR [32]byte, nSigS [32]byte, oSigV uint8, oSigR [32]byte, oSigS [32]byte) (*types.Transaction, error) {
-	return _Registry.Contract.UpdateDid(&_Registry.TransactOpts, did, account, nSigV, nSigR, nSigS, oSigV, oSigR, oSigS)
+// Solidity: function changeController(address did, address newController) returns()
+func (_Registry *RegistrySession) ChangeController(did common.Address, newController common.Address) (*types.Transaction, error) {
+	return _Registry.Contract.ChangeController(&_Registry.TransactOpts, did, newController)
 }
 
-// UpdateDid is a paid mutator transaction binding the contract method 0xb6f8a115.
+// ChangeController is a paid mutator transaction binding the contract method 0x3e11e378.
 //
-// Solidity: function updateDid(string did, address account, uint8 nSigV, bytes32 nSigR, bytes32 nSigS, uint8 oSigV, bytes32 oSigR, bytes32 oSigS) returns()
-func (_Registry *RegistryTransactorSession) UpdateDid(did string, account common.Address, nSigV uint8, nSigR [32]byte, nSigS [32]byte, oSigV uint8, oSigR [32]byte, oSigS [32]byte) (*types.Transaction, error) {
-	return _Registry.Contract.UpdateDid(&_Registry.TransactOpts, did, account, nSigV, nSigR, nSigS, oSigV, oSigR, oSigS)
+// Solidity: function changeController(address did, address newController) returns()
+func (_Registry *RegistryTransactorSession) ChangeController(did common.Address, newController common.Address) (*types.Transaction, error) {
+	return _Registry.Contract.ChangeController(&_Registry.TransactOpts, did, newController)
+}
+
+// ChangeControllerPermit is a paid mutator transaction binding the contract method 0x67c02b0a.
+//
+// Solidity: function changeControllerPermit(address did, address newController, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistryTransactor) ChangeControllerPermit(opts *bind.TransactOpts, did common.Address, newController common.Address, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.contract.Transact(opts, "changeControllerPermit", did, newController, deadline, signature)
+}
+
+// ChangeControllerPermit is a paid mutator transaction binding the contract method 0x67c02b0a.
+//
+// Solidity: function changeControllerPermit(address did, address newController, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistrySession) ChangeControllerPermit(did common.Address, newController common.Address, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.Contract.ChangeControllerPermit(&_Registry.TransactOpts, did, newController, deadline, signature)
+}
+
+// ChangeControllerPermit is a paid mutator transaction binding the contract method 0x67c02b0a.
+//
+// Solidity: function changeControllerPermit(address did, address newController, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistryTransactorSession) ChangeControllerPermit(did common.Address, newController common.Address, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.Contract.ChangeControllerPermit(&_Registry.TransactOpts, did, newController, deadline, signature)
+}
+
+// RevokeAttribute is a paid mutator transaction binding the contract method 0x00c023da.
+//
+// Solidity: function revokeAttribute(address did, bytes32 name, bytes value) returns()
+func (_Registry *RegistryTransactor) RevokeAttribute(opts *bind.TransactOpts, did common.Address, name [32]byte, value []byte) (*types.Transaction, error) {
+	return _Registry.contract.Transact(opts, "revokeAttribute", did, name, value)
+}
+
+// RevokeAttribute is a paid mutator transaction binding the contract method 0x00c023da.
+//
+// Solidity: function revokeAttribute(address did, bytes32 name, bytes value) returns()
+func (_Registry *RegistrySession) RevokeAttribute(did common.Address, name [32]byte, value []byte) (*types.Transaction, error) {
+	return _Registry.Contract.RevokeAttribute(&_Registry.TransactOpts, did, name, value)
+}
+
+// RevokeAttribute is a paid mutator transaction binding the contract method 0x00c023da.
+//
+// Solidity: function revokeAttribute(address did, bytes32 name, bytes value) returns()
+func (_Registry *RegistryTransactorSession) RevokeAttribute(did common.Address, name [32]byte, value []byte) (*types.Transaction, error) {
+	return _Registry.Contract.RevokeAttribute(&_Registry.TransactOpts, did, name, value)
+}
+
+// RevokeAttributePermit is a paid mutator transaction binding the contract method 0x97880f96.
+//
+// Solidity: function revokeAttributePermit(address did, bytes32 name, bytes value, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistryTransactor) RevokeAttributePermit(opts *bind.TransactOpts, did common.Address, name [32]byte, value []byte, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.contract.Transact(opts, "revokeAttributePermit", did, name, value, deadline, signature)
+}
+
+// RevokeAttributePermit is a paid mutator transaction binding the contract method 0x97880f96.
+//
+// Solidity: function revokeAttributePermit(address did, bytes32 name, bytes value, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistrySession) RevokeAttributePermit(did common.Address, name [32]byte, value []byte, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.Contract.RevokeAttributePermit(&_Registry.TransactOpts, did, name, value, deadline, signature)
+}
+
+// RevokeAttributePermit is a paid mutator transaction binding the contract method 0x97880f96.
+//
+// Solidity: function revokeAttributePermit(address did, bytes32 name, bytes value, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistryTransactorSession) RevokeAttributePermit(did common.Address, name [32]byte, value []byte, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.Contract.RevokeAttributePermit(&_Registry.TransactOpts, did, name, value, deadline, signature)
+}
+
+// RevokeDelegate is a paid mutator transaction binding the contract method 0x80b29f7c.
+//
+// Solidity: function revokeDelegate(address did, bytes32 delegateType, address delegate) returns()
+func (_Registry *RegistryTransactor) RevokeDelegate(opts *bind.TransactOpts, did common.Address, delegateType [32]byte, delegate common.Address) (*types.Transaction, error) {
+	return _Registry.contract.Transact(opts, "revokeDelegate", did, delegateType, delegate)
+}
+
+// RevokeDelegate is a paid mutator transaction binding the contract method 0x80b29f7c.
+//
+// Solidity: function revokeDelegate(address did, bytes32 delegateType, address delegate) returns()
+func (_Registry *RegistrySession) RevokeDelegate(did common.Address, delegateType [32]byte, delegate common.Address) (*types.Transaction, error) {
+	return _Registry.Contract.RevokeDelegate(&_Registry.TransactOpts, did, delegateType, delegate)
+}
+
+// RevokeDelegate is a paid mutator transaction binding the contract method 0x80b29f7c.
+//
+// Solidity: function revokeDelegate(address did, bytes32 delegateType, address delegate) returns()
+func (_Registry *RegistryTransactorSession) RevokeDelegate(did common.Address, delegateType [32]byte, delegate common.Address) (*types.Transaction, error) {
+	return _Registry.Contract.RevokeDelegate(&_Registry.TransactOpts, did, delegateType, delegate)
+}
+
+// RevokeDelegatePermit is a paid mutator transaction binding the contract method 0xee75d2e8.
+//
+// Solidity: function revokeDelegatePermit(address did, bytes32 delegateType, address delegate, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistryTransactor) RevokeDelegatePermit(opts *bind.TransactOpts, did common.Address, delegateType [32]byte, delegate common.Address, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.contract.Transact(opts, "revokeDelegatePermit", did, delegateType, delegate, deadline, signature)
+}
+
+// RevokeDelegatePermit is a paid mutator transaction binding the contract method 0xee75d2e8.
+//
+// Solidity: function revokeDelegatePermit(address did, bytes32 delegateType, address delegate, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistrySession) RevokeDelegatePermit(did common.Address, delegateType [32]byte, delegate common.Address, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.Contract.RevokeDelegatePermit(&_Registry.TransactOpts, did, delegateType, delegate, deadline, signature)
+}
+
+// RevokeDelegatePermit is a paid mutator transaction binding the contract method 0xee75d2e8.
+//
+// Solidity: function revokeDelegatePermit(address did, bytes32 delegateType, address delegate, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistryTransactorSession) RevokeDelegatePermit(did common.Address, delegateType [32]byte, delegate common.Address, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.Contract.RevokeDelegatePermit(&_Registry.TransactOpts, did, delegateType, delegate, deadline, signature)
+}
+
+// SetAttribute is a paid mutator transaction binding the contract method 0x7ad4b0a4.
+//
+// Solidity: function setAttribute(address did, bytes32 name, bytes value, uint256 validity) returns()
+func (_Registry *RegistryTransactor) SetAttribute(opts *bind.TransactOpts, did common.Address, name [32]byte, value []byte, validity *big.Int) (*types.Transaction, error) {
+	return _Registry.contract.Transact(opts, "setAttribute", did, name, value, validity)
+}
+
+// SetAttribute is a paid mutator transaction binding the contract method 0x7ad4b0a4.
+//
+// Solidity: function setAttribute(address did, bytes32 name, bytes value, uint256 validity) returns()
+func (_Registry *RegistrySession) SetAttribute(did common.Address, name [32]byte, value []byte, validity *big.Int) (*types.Transaction, error) {
+	return _Registry.Contract.SetAttribute(&_Registry.TransactOpts, did, name, value, validity)
+}
+
+// SetAttribute is a paid mutator transaction binding the contract method 0x7ad4b0a4.
+//
+// Solidity: function setAttribute(address did, bytes32 name, bytes value, uint256 validity) returns()
+func (_Registry *RegistryTransactorSession) SetAttribute(did common.Address, name [32]byte, value []byte, validity *big.Int) (*types.Transaction, error) {
+	return _Registry.Contract.SetAttribute(&_Registry.TransactOpts, did, name, value, validity)
+}
+
+// SetAttributePermit is a paid mutator transaction binding the contract method 0x030b320d.
+//
+// Solidity: function setAttributePermit(address did, bytes32 name, bytes value, uint256 validity, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistryTransactor) SetAttributePermit(opts *bind.TransactOpts, did common.Address, name [32]byte, value []byte, validity *big.Int, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.contract.Transact(opts, "setAttributePermit", did, name, value, validity, deadline, signature)
+}
+
+// SetAttributePermit is a paid mutator transaction binding the contract method 0x030b320d.
+//
+// Solidity: function setAttributePermit(address did, bytes32 name, bytes value, uint256 validity, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistrySession) SetAttributePermit(did common.Address, name [32]byte, value []byte, validity *big.Int, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.Contract.SetAttributePermit(&_Registry.TransactOpts, did, name, value, validity, deadline, signature)
+}
+
+// SetAttributePermit is a paid mutator transaction binding the contract method 0x030b320d.
+//
+// Solidity: function setAttributePermit(address did, bytes32 name, bytes value, uint256 validity, uint256 deadline, bytes signature) returns()
+func (_Registry *RegistryTransactorSession) SetAttributePermit(did common.Address, name [32]byte, value []byte, validity *big.Int, deadline *big.Int, signature []byte) (*types.Transaction, error) {
+	return _Registry.Contract.SetAttributePermit(&_Registry.TransactOpts, did, name, value, validity, deadline, signature)
 }
 
 // RegistryDIDAttributeChangedIterator is returned from FilterDIDAttributeChanged and is used to iterate over the raw logs and unpacked data for DIDAttributeChanged events raised by the Registry contract.
@@ -477,16 +715,18 @@ func (it *RegistryDIDAttributeChangedIterator) Close() error {
 
 // RegistryDIDAttributeChanged represents a DIDAttributeChanged event raised by the Registry contract.
 type RegistryDIDAttributeChanged struct {
-	Did   common.Hash
-	Name  [32]byte
-	Value []byte
-	Raw   types.Log // Blockchain specific contextual infos
+	Did            common.Address
+	Name           [32]byte
+	Value          []byte
+	ValidTo        *big.Int
+	PreviousChange *big.Int
+	Raw            types.Log // Blockchain specific contextual infos
 }
 
-// FilterDIDAttributeChanged is a free log retrieval operation binding the contract event 0x45731992f6f6bd99a592d32cd338d6875a784dbb138bc7a051f541d0f6d56e37.
+// FilterDIDAttributeChanged is a free log retrieval operation binding the contract event 0x18ab6b2ae3d64306c00ce663125f2bd680e441a098de1635bd7ad8b0d44965e4.
 //
-// Solidity: event DIDAttributeChanged(string indexed did, bytes32 name, bytes value)
-func (_Registry *RegistryFilterer) FilterDIDAttributeChanged(opts *bind.FilterOpts, did []string) (*RegistryDIDAttributeChangedIterator, error) {
+// Solidity: event DIDAttributeChanged(address indexed did, bytes32 name, bytes value, uint256 validTo, uint256 previousChange)
+func (_Registry *RegistryFilterer) FilterDIDAttributeChanged(opts *bind.FilterOpts, did []common.Address) (*RegistryDIDAttributeChangedIterator, error) {
 
 	var didRule []interface{}
 	for _, didItem := range did {
@@ -500,10 +740,10 @@ func (_Registry *RegistryFilterer) FilterDIDAttributeChanged(opts *bind.FilterOp
 	return &RegistryDIDAttributeChangedIterator{contract: _Registry.contract, event: "DIDAttributeChanged", logs: logs, sub: sub}, nil
 }
 
-// WatchDIDAttributeChanged is a free log subscription operation binding the contract event 0x45731992f6f6bd99a592d32cd338d6875a784dbb138bc7a051f541d0f6d56e37.
+// WatchDIDAttributeChanged is a free log subscription operation binding the contract event 0x18ab6b2ae3d64306c00ce663125f2bd680e441a098de1635bd7ad8b0d44965e4.
 //
-// Solidity: event DIDAttributeChanged(string indexed did, bytes32 name, bytes value)
-func (_Registry *RegistryFilterer) WatchDIDAttributeChanged(opts *bind.WatchOpts, sink chan<- *RegistryDIDAttributeChanged, did []string) (event.Subscription, error) {
+// Solidity: event DIDAttributeChanged(address indexed did, bytes32 name, bytes value, uint256 validTo, uint256 previousChange)
+func (_Registry *RegistryFilterer) WatchDIDAttributeChanged(opts *bind.WatchOpts, sink chan<- *RegistryDIDAttributeChanged, did []common.Address) (event.Subscription, error) {
 
 	var didRule []interface{}
 	for _, didItem := range did {
@@ -542,9 +782,9 @@ func (_Registry *RegistryFilterer) WatchDIDAttributeChanged(opts *bind.WatchOpts
 	}), nil
 }
 
-// ParseDIDAttributeChanged is a log parse operation binding the contract event 0x45731992f6f6bd99a592d32cd338d6875a784dbb138bc7a051f541d0f6d56e37.
+// ParseDIDAttributeChanged is a log parse operation binding the contract event 0x18ab6b2ae3d64306c00ce663125f2bd680e441a098de1635bd7ad8b0d44965e4.
 //
-// Solidity: event DIDAttributeChanged(string indexed did, bytes32 name, bytes value)
+// Solidity: event DIDAttributeChanged(address indexed did, bytes32 name, bytes value, uint256 validTo, uint256 previousChange)
 func (_Registry *RegistryFilterer) ParseDIDAttributeChanged(log types.Log) (*RegistryDIDAttributeChanged, error) {
 	event := new(RegistryDIDAttributeChanged)
 	if err := _Registry.contract.UnpackLog(event, "DIDAttributeChanged", log); err != nil {
@@ -554,9 +794,9 @@ func (_Registry *RegistryFilterer) ParseDIDAttributeChanged(log types.Log) (*Reg
 	return event, nil
 }
 
-// RegistryVCSchemaChangedIterator is returned from FilterVCSchemaChanged and is used to iterate over the raw logs and unpacked data for VCSchemaChanged events raised by the Registry contract.
-type RegistryVCSchemaChangedIterator struct {
-	Event *RegistryVCSchemaChanged // Event containing the contract specifics and raw log
+// RegistryDIDControllerChangedIterator is returned from FilterDIDControllerChanged and is used to iterate over the raw logs and unpacked data for DIDControllerChanged events raised by the Registry contract.
+type RegistryDIDControllerChangedIterator struct {
+	Event *RegistryDIDControllerChanged // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -570,7 +810,7 @@ type RegistryVCSchemaChangedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *RegistryVCSchemaChangedIterator) Next() bool {
+func (it *RegistryDIDControllerChangedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -579,7 +819,7 @@ func (it *RegistryVCSchemaChangedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(RegistryVCSchemaChanged)
+			it.Event = new(RegistryDIDControllerChanged)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -594,7 +834,7 @@ func (it *RegistryVCSchemaChangedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(RegistryVCSchemaChanged)
+		it.Event = new(RegistryDIDControllerChanged)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -610,53 +850,53 @@ func (it *RegistryVCSchemaChangedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *RegistryVCSchemaChangedIterator) Error() error {
+func (it *RegistryDIDControllerChangedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *RegistryVCSchemaChangedIterator) Close() error {
+func (it *RegistryDIDControllerChangedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// RegistryVCSchemaChanged represents a VCSchemaChanged event raised by the Registry contract.
-type RegistryVCSchemaChanged struct {
-	VcName common.Hash
-	Name   [32]byte
-	Value  []byte
-	Raw    types.Log // Blockchain specific contextual infos
+// RegistryDIDControllerChanged represents a DIDControllerChanged event raised by the Registry contract.
+type RegistryDIDControllerChanged struct {
+	OldController  common.Address
+	NewController  common.Address
+	PreviousChange *big.Int
+	Raw            types.Log // Blockchain specific contextual infos
 }
 
-// FilterVCSchemaChanged is a free log retrieval operation binding the contract event 0x7650c16466dfc67d3aa1b3b380b7425844e301ce12fc320f5ce442a39d222af4.
+// FilterDIDControllerChanged is a free log retrieval operation binding the contract event 0x2a7278c7e47d91c392e2d4f854ebe76d04458b3f431d27ef2e64707e68615e48.
 //
-// Solidity: event VCSchemaChanged(string indexed vcName, bytes32 name, bytes value)
-func (_Registry *RegistryFilterer) FilterVCSchemaChanged(opts *bind.FilterOpts, vcName []string) (*RegistryVCSchemaChangedIterator, error) {
+// Solidity: event DIDControllerChanged(address indexed oldController, address newController, uint256 previousChange)
+func (_Registry *RegistryFilterer) FilterDIDControllerChanged(opts *bind.FilterOpts, oldController []common.Address) (*RegistryDIDControllerChangedIterator, error) {
 
-	var vcNameRule []interface{}
-	for _, vcNameItem := range vcName {
-		vcNameRule = append(vcNameRule, vcNameItem)
+	var oldControllerRule []interface{}
+	for _, oldControllerItem := range oldController {
+		oldControllerRule = append(oldControllerRule, oldControllerItem)
 	}
 
-	logs, sub, err := _Registry.contract.FilterLogs(opts, "VCSchemaChanged", vcNameRule)
+	logs, sub, err := _Registry.contract.FilterLogs(opts, "DIDControllerChanged", oldControllerRule)
 	if err != nil {
 		return nil, err
 	}
-	return &RegistryVCSchemaChangedIterator{contract: _Registry.contract, event: "VCSchemaChanged", logs: logs, sub: sub}, nil
+	return &RegistryDIDControllerChangedIterator{contract: _Registry.contract, event: "DIDControllerChanged", logs: logs, sub: sub}, nil
 }
 
-// WatchVCSchemaChanged is a free log subscription operation binding the contract event 0x7650c16466dfc67d3aa1b3b380b7425844e301ce12fc320f5ce442a39d222af4.
+// WatchDIDControllerChanged is a free log subscription operation binding the contract event 0x2a7278c7e47d91c392e2d4f854ebe76d04458b3f431d27ef2e64707e68615e48.
 //
-// Solidity: event VCSchemaChanged(string indexed vcName, bytes32 name, bytes value)
-func (_Registry *RegistryFilterer) WatchVCSchemaChanged(opts *bind.WatchOpts, sink chan<- *RegistryVCSchemaChanged, vcName []string) (event.Subscription, error) {
+// Solidity: event DIDControllerChanged(address indexed oldController, address newController, uint256 previousChange)
+func (_Registry *RegistryFilterer) WatchDIDControllerChanged(opts *bind.WatchOpts, sink chan<- *RegistryDIDControllerChanged, oldController []common.Address) (event.Subscription, error) {
 
-	var vcNameRule []interface{}
-	for _, vcNameItem := range vcName {
-		vcNameRule = append(vcNameRule, vcNameItem)
+	var oldControllerRule []interface{}
+	for _, oldControllerItem := range oldController {
+		oldControllerRule = append(oldControllerRule, oldControllerItem)
 	}
 
-	logs, sub, err := _Registry.contract.WatchLogs(opts, "VCSchemaChanged", vcNameRule)
+	logs, sub, err := _Registry.contract.WatchLogs(opts, "DIDControllerChanged", oldControllerRule)
 	if err != nil {
 		return nil, err
 	}
@@ -666,8 +906,8 @@ func (_Registry *RegistryFilterer) WatchVCSchemaChanged(opts *bind.WatchOpts, si
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(RegistryVCSchemaChanged)
-				if err := _Registry.contract.UnpackLog(event, "VCSchemaChanged", log); err != nil {
+				event := new(RegistryDIDControllerChanged)
+				if err := _Registry.contract.UnpackLog(event, "DIDControllerChanged", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -688,12 +928,293 @@ func (_Registry *RegistryFilterer) WatchVCSchemaChanged(opts *bind.WatchOpts, si
 	}), nil
 }
 
-// ParseVCSchemaChanged is a log parse operation binding the contract event 0x7650c16466dfc67d3aa1b3b380b7425844e301ce12fc320f5ce442a39d222af4.
+// ParseDIDControllerChanged is a log parse operation binding the contract event 0x2a7278c7e47d91c392e2d4f854ebe76d04458b3f431d27ef2e64707e68615e48.
 //
-// Solidity: event VCSchemaChanged(string indexed vcName, bytes32 name, bytes value)
-func (_Registry *RegistryFilterer) ParseVCSchemaChanged(log types.Log) (*RegistryVCSchemaChanged, error) {
-	event := new(RegistryVCSchemaChanged)
-	if err := _Registry.contract.UnpackLog(event, "VCSchemaChanged", log); err != nil {
+// Solidity: event DIDControllerChanged(address indexed oldController, address newController, uint256 previousChange)
+func (_Registry *RegistryFilterer) ParseDIDControllerChanged(log types.Log) (*RegistryDIDControllerChanged, error) {
+	event := new(RegistryDIDControllerChanged)
+	if err := _Registry.contract.UnpackLog(event, "DIDControllerChanged", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// RegistryDIDDelegateChangedIterator is returned from FilterDIDDelegateChanged and is used to iterate over the raw logs and unpacked data for DIDDelegateChanged events raised by the Registry contract.
+type RegistryDIDDelegateChangedIterator struct {
+	Event *RegistryDIDDelegateChanged // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *RegistryDIDDelegateChangedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(RegistryDIDDelegateChanged)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(RegistryDIDDelegateChanged)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *RegistryDIDDelegateChangedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *RegistryDIDDelegateChangedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// RegistryDIDDelegateChanged represents a DIDDelegateChanged event raised by the Registry contract.
+type RegistryDIDDelegateChanged struct {
+	Did            common.Address
+	DelegateType   [32]byte
+	Delegate       common.Address
+	ValidTo        *big.Int
+	PreviousChange *big.Int
+	Raw            types.Log // Blockchain specific contextual infos
+}
+
+// FilterDIDDelegateChanged is a free log retrieval operation binding the contract event 0x5a5084339536bcab65f20799fcc58724588145ca054bd2be626174b27ba156f7.
+//
+// Solidity: event DIDDelegateChanged(address indexed did, bytes32 delegateType, address delegate, uint256 validTo, uint256 previousChange)
+func (_Registry *RegistryFilterer) FilterDIDDelegateChanged(opts *bind.FilterOpts, did []common.Address) (*RegistryDIDDelegateChangedIterator, error) {
+
+	var didRule []interface{}
+	for _, didItem := range did {
+		didRule = append(didRule, didItem)
+	}
+
+	logs, sub, err := _Registry.contract.FilterLogs(opts, "DIDDelegateChanged", didRule)
+	if err != nil {
+		return nil, err
+	}
+	return &RegistryDIDDelegateChangedIterator{contract: _Registry.contract, event: "DIDDelegateChanged", logs: logs, sub: sub}, nil
+}
+
+// WatchDIDDelegateChanged is a free log subscription operation binding the contract event 0x5a5084339536bcab65f20799fcc58724588145ca054bd2be626174b27ba156f7.
+//
+// Solidity: event DIDDelegateChanged(address indexed did, bytes32 delegateType, address delegate, uint256 validTo, uint256 previousChange)
+func (_Registry *RegistryFilterer) WatchDIDDelegateChanged(opts *bind.WatchOpts, sink chan<- *RegistryDIDDelegateChanged, did []common.Address) (event.Subscription, error) {
+
+	var didRule []interface{}
+	for _, didItem := range did {
+		didRule = append(didRule, didItem)
+	}
+
+	logs, sub, err := _Registry.contract.WatchLogs(opts, "DIDDelegateChanged", didRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(RegistryDIDDelegateChanged)
+				if err := _Registry.contract.UnpackLog(event, "DIDDelegateChanged", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseDIDDelegateChanged is a log parse operation binding the contract event 0x5a5084339536bcab65f20799fcc58724588145ca054bd2be626174b27ba156f7.
+//
+// Solidity: event DIDDelegateChanged(address indexed did, bytes32 delegateType, address delegate, uint256 validTo, uint256 previousChange)
+func (_Registry *RegistryFilterer) ParseDIDDelegateChanged(log types.Log) (*RegistryDIDDelegateChanged, error) {
+	event := new(RegistryDIDDelegateChanged)
+	if err := _Registry.contract.UnpackLog(event, "DIDDelegateChanged", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// RegistryEIP712DomainChangedIterator is returned from FilterEIP712DomainChanged and is used to iterate over the raw logs and unpacked data for EIP712DomainChanged events raised by the Registry contract.
+type RegistryEIP712DomainChangedIterator struct {
+	Event *RegistryEIP712DomainChanged // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *RegistryEIP712DomainChangedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(RegistryEIP712DomainChanged)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(RegistryEIP712DomainChanged)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *RegistryEIP712DomainChangedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *RegistryEIP712DomainChangedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// RegistryEIP712DomainChanged represents a EIP712DomainChanged event raised by the Registry contract.
+type RegistryEIP712DomainChanged struct {
+	Raw types.Log // Blockchain specific contextual infos
+}
+
+// FilterEIP712DomainChanged is a free log retrieval operation binding the contract event 0x0a6387c9ea3628b88a633bb4f3b151770f70085117a15f9bf3787cda53f13d31.
+//
+// Solidity: event EIP712DomainChanged()
+func (_Registry *RegistryFilterer) FilterEIP712DomainChanged(opts *bind.FilterOpts) (*RegistryEIP712DomainChangedIterator, error) {
+
+	logs, sub, err := _Registry.contract.FilterLogs(opts, "EIP712DomainChanged")
+	if err != nil {
+		return nil, err
+	}
+	return &RegistryEIP712DomainChangedIterator{contract: _Registry.contract, event: "EIP712DomainChanged", logs: logs, sub: sub}, nil
+}
+
+// WatchEIP712DomainChanged is a free log subscription operation binding the contract event 0x0a6387c9ea3628b88a633bb4f3b151770f70085117a15f9bf3787cda53f13d31.
+//
+// Solidity: event EIP712DomainChanged()
+func (_Registry *RegistryFilterer) WatchEIP712DomainChanged(opts *bind.WatchOpts, sink chan<- *RegistryEIP712DomainChanged) (event.Subscription, error) {
+
+	logs, sub, err := _Registry.contract.WatchLogs(opts, "EIP712DomainChanged")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(RegistryEIP712DomainChanged)
+				if err := _Registry.contract.UnpackLog(event, "EIP712DomainChanged", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseEIP712DomainChanged is a log parse operation binding the contract event 0x0a6387c9ea3628b88a633bb4f3b151770f70085117a15f9bf3787cda53f13d31.
+//
+// Solidity: event EIP712DomainChanged()
+func (_Registry *RegistryFilterer) ParseEIP712DomainChanged(log types.Log) (*RegistryEIP712DomainChanged, error) {
+	event := new(RegistryEIP712DomainChanged)
+	if err := _Registry.contract.UnpackLog(event, "EIP712DomainChanged", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

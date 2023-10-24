@@ -1,11 +1,13 @@
 package did
 
 import (
-	"bytes"
 	"crypto/ecdsa"
+	"encoding/base64"
+	"math/big"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	gojose "gopkg.in/square/go-jose.v2"
-	"math/big"
 )
 
 // use a private key and a message to create a JWS format signature
@@ -45,22 +47,31 @@ func CreateJWSSignature(privKey *ecdsa.PrivateKey, message []byte) (string, erro
 }
 
 // verify a JWS format signature using the matching public key and the original message
-func VerifyJWSSignature(signature string, pubKey *ecdsa.PublicKey, message []byte) (bool, error) {
-	sigObject, err := gojose.ParseDetached(signature, message)
-	if err != nil {
-		return false, err
+func VerifyJWSSignature(signature string, expectedFullBlkID string, message []byte) (bool, error) {
+	partedExpectedBlkID := strings.Split(expectedFullBlkID, ":")
+	if (len(partedExpectedBlkID) != 3 && len(partedExpectedBlkID) != 2) || partedExpectedBlkID[0] != "eip155" {
+		return false, ErrInvalidBlockID
+	}
+	partedSig := strings.Split(signature, ".")
+	if len(partedSig) != 3 {
+		return false, ErrInValidSignature
 	}
 
-	result, err := sigObject.Verify(pubKey)
+	sig, err := base64.RawURLEncoding.DecodeString(partedSig[2])
 	if err != nil {
-		return false, err
+		return false, ErrInValidSignature
 	}
 
-	if !bytes.Equal(message, result) {
+	decodedPubkey, err := crypto.SigToPub(message[:], sig)
+	if err != nil {
+		return false, ErrInValidSignature
+	}
+
+	decodedBlkID := crypto.PubkeyToAddress(*decodedPubkey).Hex()
+	if decodedBlkID != partedExpectedBlkID[len(partedExpectedBlkID)-1] {
 		return false, nil
-	} else {
-		return true, nil
 	}
+	return true, nil
 }
 
 // make sure that the address created from pubKey matches the address stored in vm's BlockChainAccountId field

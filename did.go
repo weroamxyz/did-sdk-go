@@ -2,19 +2,45 @@ package did
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
-	"github.com/MetaBloxIO/did-sdk-go/registry"
-	"regexp"
+	"math/big"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/MetaBloxIO/did-sdk-go/registry"
+
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/mr-tron/base58"
 )
+
+func GetRegistryInstance(config ContractConfig) (bound BoundedContract, err error) {
+
+	if !common.IsHexAddress(config.contractAddr) {
+		return bound, ErrETHAddress
+	}
+	bound.client, err = ethclient.Dial(config.rpcUrl)
+	if err != nil {
+		return bound, err
+	}
+	bound.contractAddr = common.HexToAddress(config.contractAddr)
+	bound.instance, err = registry.NewRegistry(bound.contractAddr, bound.client)
+	if err != nil {
+		return bound, err
+	}
+	bound.chainID, err = bound.client.ChainID(context.Background())
+	if err != nil {
+		return bound, err
+	}
+
+	return bound, nil
+}
 
 //DID is created by taking a public key, taking its Keccak256 hash, and encoding the hash using base58. We then add 'did:metablox:' to the front
 
@@ -25,6 +51,19 @@ func GenerateDIDString(privKey *ecdsa.PrivateKey) string {
 	didString := base58.Encode(hash)
 	returnString := "did:metablox:" + didString
 	return returnString
+}
+
+func GenerateDID(pubKey *ecdsa.PublicKey, network string) string {
+
+	ethAddress := crypto.PubkeyToAddress(*pubKey)
+
+	// No network/chainID provided, default on Ethereum Mainnet
+	if network == "" {
+		return "did:metablox:" + ethAddress.Hex()
+	} else {
+		return "did:metablox:" + network + ":" + ethAddress.Hex()
+	}
+
 }
 
 // TODO: check that this function can be safely removed. The foundation service doesn't need to create new DID documents; however, some other system may want to import this function
@@ -75,8 +114,8 @@ func JsonToDocument(jsonDoc []byte) (*DIDDocument, error) {
 
 // check format of DID string
 func IsDIDValid(did []string) bool {
-	if len(did) != 3 {
-		fmt.Println("Not exactly 3 sections in DID")
+	if len(did) != 3 || len(did) != 4 {
+		fmt.Println("Not exactly 3 or 4 sections in DID")
 		return false
 	}
 	prefix := did[0]
@@ -91,12 +130,13 @@ func IsDIDValid(did []string) bool {
 		return false
 	}
 
-	identifierPattern := `^([a-zA-Z0-9\._\-]*(%[0-9A-Fa-f][0-9A-Fa-f])*)*$`
-	identifierExp, _ := regexp.Compile(identifierPattern)
-
-	identifierSection := did[2]
-	match := identifierExp.MatchString(identifierSection)
-	if !match {
+	identifierSection := ""
+	if len(did) == 3 {
+		identifierSection = did[2]
+	} else {
+		identifierSection = did[3]
+	}
+	if !common.IsHexAddress(identifierSection) {
 		fmt.Println("Identifier section is formatted incorrectly")
 		return false
 	}
@@ -121,15 +161,15 @@ func PrepareDID(did string) ([]string, bool) {
 	return splitString, valid
 }
 
-func GetDocument(targetDID string, registry *registry.Registry) (*DIDDocument, [32]byte, error) {
-	address, err := registry.Dids(nil, targetDID)
+func GetDocument(targetAddress string, bound *BoundedContract) (*DIDDocument, [32]byte, error) {
+	txBlk, err := bound.instance.Changed(nil, common.HexToAddress(targetAddress))
 	if err != nil {
 		return nil, [32]byte{0}, err
 	}
 
 	document := new(DIDDocument)
 
-	document.ID = "did:metablox:" + targetDID
+	document.ID = "did:metablox:" + "0x" + bound.chainID.Text(16) + targetAddress
 	document.Context = make([]string, 0)
 	document.Context = append(document.Context, ContextSecp256k1)
 	document.Context = append(document.Context, ContextDID)
@@ -138,13 +178,49 @@ func GetDocument(targetDID string, registry *registry.Registry) (*DIDDocument, [
 	document.Version = 1                               //todo: need to get this from contract
 
 	VM := VerificationMethod{}
-	VM.ID = document.ID + "#verification"
-	VM.BlockchainAccountId = "eip155:" + issuerChainId.String() + ":" + address.Hex()
+	VM.ID = document.ID + "#controller"
+	VM.BlockchainAccountId = "eip155:" + bound.chainID.String() + ":" + targetAddress
 	VM.Controller = document.ID
 	VM.MethodType = Secp256k1Key
-
 	document.VerificationMethod = append(document.VerificationMethod, VM)
-	document.Authentication = VM.ID
+	document.Authentication = VM.ID + "#controller"
+
+	/*
+		contractAbi, err := abi.JSON(strings.NewReader(string(registry.RegistryABI)))
+		if err != nil {
+			return nil, [32]byte{0}, err
+		}
+	*/
+
+	controllerIter, err := bound.instance.RegistryFilterer.FilterDIDControllerChanged(nil, []common.Address{common.HexToAddress(targetAddress)})
+	if err != nil {
+		return nil, [32]byte{0}, err
+	}
+	for controllerIter.Event != nil {
+		newController := controllerIter.Event.NewController
+		document.VerificationMethod[0].Controller = "did:metablox:" + "0x" + bound.chainID.Text(16) + newController.Hex()
+
+		if !controllerIter.Next() {
+			controllerIter.Close()
+			break
+		}
+	}
+
+	txBlkArr := make([]*big.Int, 0, 0)
+	for txBlk != big.NewInt(0) {
+		txBlkArr = append([]*big.Int{txBlk}, txBlkArr...)
+		document.Version = document.Version + 1
+
+		/*
+			query := ethereum.FilterQuery{
+				FromBlock: txBlk,
+				ToBlock:   txBlk,
+				Addresses: []common.Address{
+					bound.contractAddr,
+				},
+			}
+		*/
+	}
 
 	placeholderHash := [32]byte{94, 241, 27, 134, 190, 223, 112, 91, 189, 49, 221, 31, 228, 35, 189, 213, 251, 60, 60, 210, 162, 45, 151, 3, 31, 78, 41, 239, 41, 75, 198, 139}
 	return document, placeholderHash, nil
@@ -152,13 +228,19 @@ func GetDocument(targetDID string, registry *registry.Registry) (*DIDDocument, [
 
 // generate the did document that matches the provided did string. Any errors are returned in the ResolutionMetadata.
 // Note that options currently does nothing; including it is a requirement according to W3C specifications, but we don't do anything with it right now
-func Resolve(did string, options *ResolutionOptions, registry *registry.Registry) (*ResolutionMetadata, *DIDDocument, *DocumentMetadata) {
+func Resolve(did string, options *ResolutionOptions, bound *BoundedContract) (*ResolutionMetadata, *DIDDocument, *DocumentMetadata) {
 	splitDID, valid := PrepareDID(did)
 	if !valid {
 		return &ResolutionMetadata{Error: "invalid Did"}, nil, &DocumentMetadata{}
 	}
 
-	generatedDocument, _, err := GetDocument(splitDID[2], registry)
+	targetAddress := ""
+	if len(splitDID) == 3 {
+		targetAddress = splitDID[2]
+	} else {
+		targetAddress = splitDID[3]
+	}
+	generatedDocument, _, err := GetDocument(targetAddress, bound)
 	if err != nil {
 		return &ResolutionMetadata{Error: err.Error()}, nil, nil
 	}
@@ -182,11 +264,11 @@ func Resolve(did string, options *ResolutionOptions, registry *registry.Registry
 }
 
 // generate a did document and return it in a specific data format (currently just JSON)
-func ResolveRepresentation(did string, options *RepresentationResolutionOptions, registry *registry.Registry) (*RepresentationResolutionMetadata, []byte, *DocumentMetadata) {
+func ResolveRepresentation(did string, options *RepresentationResolutionOptions, bound *BoundedContract) (*RepresentationResolutionMetadata, []byte, *DocumentMetadata) {
 	//Should be similar to Resolve, but returns the document in a specific representation format.
 	//Representation type is included in options and returned in resolution metadata
 	readOptions := CreateResolutionOptions()
-	readResolutionMeta, document, readDocumentMeta := Resolve(did, readOptions, registry)
+	readResolutionMeta, document, readDocumentMeta := Resolve(did, readOptions, bound)
 	if readResolutionMeta.Error != "" {
 		return &RepresentationResolutionMetadata{Error: readResolutionMeta.Error}, nil, nil
 	}

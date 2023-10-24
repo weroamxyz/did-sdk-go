@@ -9,4 +9,7 @@ var (
 	ErrUnknownProofType     = errors.New("unable to verify unknown proof type")
 	ErrMissingVM            = errors.New("failed to find verification method")
 	ErrWrongAddress         = errors.New("provided public key does not match issuer address")
+	ErrETHAddress           = errors.New("provided address is not a correct ETH address")
+	ErrInValidSignature     = errors.New("provided signature is invalid")
+	ErrInvalidBlockID       = errors.New("provided Block Account ID is invalid")
 )

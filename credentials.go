@@ -7,14 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/MetaBloxIO/did-sdk-go/registry"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/mitchellh/mapstructure"
 	"math/big"
 	"os"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/mitchellh/mapstructure"
 )
 
 var issuerDID string
@@ -55,7 +53,7 @@ func Init(cfg *Config) error {
 func keystoreToPrivateKey(privateKeyFile, password string) (*ecdsa.PrivateKey, error) {
 	keystoreJSON, err := os.ReadFile(privateKeyFile)
 	if err != nil {
-		return nil, fmt.Errorf("read keyjson file failed：%s", err.Error())
+		return nil, fmt.Errorf("read keyjson file failed: %s", err.Error())
 	}
 	key, err := keystore.DecryptKey(keystoreJSON, password)
 	if err != nil {
@@ -74,7 +72,6 @@ func CreateProof(vm string) VCProof {
 	vcProof.JWSSignature = ""
 	vcProof.Created = time.Now().UTC().Format(time.RFC3339)
 	vcProof.ProofPurpose = PurposeAuth
-	vcProof.PublicKeyString = crypto.FromECDSAPub(&issuerPrivateKey.PublicKey)
 	return *vcProof
 }
 
@@ -146,24 +143,18 @@ func JsonToVC(jsonVC []byte) (*VerifiableCredential, error) {
 
 // Need to make sure that the stated issuer of the VC actually created it (using the proof alongside the issuer's verification methods),
 // as well as check that the issuer is a trusted source
-func VerifyVC(vc *VerifiableCredential, registry *registry.Registry) (bool, error) {
+func VerifyVC(vc *VerifiableCredential, bound *BoundedContract) (bool, error) {
 	if vc.Issuer != issuerDID { //issuer of VC must be the same issuer stored here
 		return false, ErrUnknownIssuer
 	}
 
-	resolutionMeta, issuerDoc, _ := Resolve(vc.Issuer, CreateResolutionOptions(), registry)
+	resolutionMeta, issuerDoc, _ := Resolve(vc.Issuer, CreateResolutionOptions(), bound)
 	if resolutionMeta.Error != "" {
 		return false, errors.New(resolutionMeta.Error)
 	}
 
 	//get verification method from the issuer DID document which is listed in the vc proof
 	targetVM, err := issuerDoc.RetrieveVerificationMethod(vc.Proof.VerificationMethod)
-	if err != nil {
-		return false, err
-	}
-
-	//get public key stored in the vc proof
-	publicKey, err := crypto.UnmarshalPubkey(vc.Proof.PublicKeyString)
 	if err != nil {
 		return false, err
 	}
@@ -175,12 +166,7 @@ func VerifyVC(vc *VerifiableCredential, registry *registry.Registry) (bool, erro
 			return false, ErrSecp256k1WrongVMType
 		}
 
-		success := CompareAddresses(targetVM, publicKey) //vm must have the address that matches the proof's public key
-		if !success {
-			return false, ErrWrongAddress
-		}
-
-		return VerifyVCSecp256k1(vc, publicKey)
+		return VerifyVCSecp256k1(vc, targetVM.BlockchainAccountId)
 	default:
 		return false, ErrUnknownProofType
 	}
@@ -189,13 +175,13 @@ func VerifyVC(vc *VerifiableCredential, registry *registry.Registry) (bool, erro
 // Verify that the provided public key matches the signature in the proof.
 // Since we've made sure that the address in the issuer vm matches this public key,
 // verifying the signature here proves that the signature was made with the issuer's private key
-func VerifyVCSecp256k1(vc *VerifiableCredential, pubKey *ecdsa.PublicKey) (bool, error) {
+func VerifyVCSecp256k1(vc *VerifiableCredential, expectedBlkID string) (bool, error) {
 	copiedVC := *vc
 	//have to make sure to remove the signature from the copy, as the original did not have a signature at the time the signature was generated
 	copiedVC.Proof.JWSSignature = ""
 	hashedVC := sha256.Sum256(ConvertVCToBytes(copiedVC))
 
-	result, err := VerifyJWSSignature(vc.Proof.JWSSignature, pubKey, hashedVC[:])
+	result, err := VerifyJWSSignature(vc.Proof.JWSSignature, expectedBlkID, hashedVC[:])
 	if err != nil {
 		return false, err
 	}
@@ -235,6 +221,5 @@ func ConvertVCToBytes(vc VerifiableCredential) []byte {
 		convertedBytes = bytes.Join([][]byte{convertedBytes, []byte(miningLicenseInfo.ID), []byte(miningLicenseInfo.Name), []byte(miningLicenseInfo.Model), []byte(miningLicenseInfo.Serial)}, []byte{})
 	}
 
-	convertedBytes = bytes.Join([][]byte{convertedBytes, []byte(vc.Proof.Type), []byte(vc.Proof.Created), []byte(vc.Proof.VerificationMethod), []byte(vc.Proof.ProofPurpose), []byte(vc.Proof.JWSSignature), vc.Proof.PublicKeyString}, []byte{})
 	return convertedBytes
 }
