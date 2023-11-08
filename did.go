@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -14,27 +15,29 @@ import (
 
 	"github.com/MetaBloxIO/did-sdk-go/registry"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/mr-tron/base58"
 )
 
-func GetRegistryInstance(config ContractConfig) (bound BoundedContract, err error) {
+func GetRegistryInstance(config ContractConfig) (bound *BoundedContract, err error) {
 
-	if !common.IsHexAddress(config.contractAddr) {
+	bound = new(BoundedContract)
+
+	if !common.IsHexAddress(config.ContractAddr) {
 		return bound, ErrETHAddress
 	}
-	bound.client, err = ethclient.Dial(config.rpcUrl)
+	bound.Client, err = ethclient.Dial(config.RpcUrl)
 	if err != nil {
 		return bound, err
 	}
-	bound.contractAddr = common.HexToAddress(config.contractAddr)
-	bound.instance, err = registry.NewRegistry(bound.contractAddr, bound.client)
+	bound.ContractAddr = common.HexToAddress(config.ContractAddr)
+	bound.Instance, err = registry.NewRegistry(bound.ContractAddr, bound.Client)
 	if err != nil {
 		return bound, err
 	}
-	bound.chainID, err = bound.client.ChainID(context.Background())
+	bound.ChainID, err = bound.Client.ChainID(context.Background())
 	if err != nil {
 		return bound, err
 	}
@@ -42,18 +45,7 @@ func GetRegistryInstance(config ContractConfig) (bound BoundedContract, err erro
 	return bound, nil
 }
 
-//DID is created by taking a public key, taking its Keccak256 hash, and encoding the hash using base58. We then add 'did:metablox:' to the front
-
-func GenerateDIDString(privKey *ecdsa.PrivateKey) string {
-	pubData := crypto.FromECDSAPub(&privKey.PublicKey)
-
-	hash := crypto.Keccak256(pubData)
-	didString := base58.Encode(hash)
-	returnString := "did:metablox:" + didString
-	return returnString
-}
-
-func GenerateDID(pubKey *ecdsa.PublicKey, network string) string {
+func GenerateDIDString(pubKey *ecdsa.PublicKey, network string) string {
 
 	ethAddress := crypto.PubkeyToAddress(*pubKey)
 
@@ -67,28 +59,30 @@ func GenerateDID(pubKey *ecdsa.PublicKey, network string) string {
 }
 
 // TODO: check that this function can be safely removed. The foundation service doesn't need to create new DID documents; however, some other system may want to import this function
-func CreateDID(privKey *ecdsa.PrivateKey) *DIDDocument {
+func CreateDID(privKey *ecdsa.PrivateKey, bound BoundedContract) *DIDDocument {
 
 	document := new(DIDDocument)
+	loc, _ := time.LoadLocation("UTC")
 
-	document.ID = GenerateDIDString(privKey)
+	document.ID = GenerateDIDString(&privKey.PublicKey, "0x"+bound.ChainID.Text(16))
 	document.Context = make([]string, 0)
 	document.Context = append(document.Context, ContextSecp256k1)
 	document.Context = append(document.Context, ContextDID)
-	document.Created = time.Now().Format(time.RFC3339)
+	document.Created = time.Now().In(loc).Format(time.RFC3339)
 	document.Updated = document.Created
 	document.Version = 1
 
 	address := crypto.PubkeyToAddress(privKey.PublicKey)
 
 	VM := VerificationMethod{}
-	VM.ID = document.ID + "#verification"
-	VM.BlockchainAccountId = "eip155:" + issuerChainId.String() + ":" + address.Hex()
+	VM.ID = document.ID + "#controller"
+	VM.BlockchainAccountId = "eip155:" + "0x" + bound.ChainID.Text(16) + ":" + address.Hex()
 	VM.Controller = document.ID
 	VM.MethodType = Secp256k1Key
 
 	document.VerificationMethod = append(document.VerificationMethod, VM)
 	document.Authentication = VM.ID
+	document.AssertionMethod = VM.ID
 
 	return document
 }
@@ -114,7 +108,7 @@ func JsonToDocument(jsonDoc []byte) (*DIDDocument, error) {
 
 // check format of DID string
 func IsDIDValid(did []string) bool {
-	if len(did) != 3 || len(did) != 4 {
+	if len(did) != 3 && len(did) != 4 {
 		fmt.Println("Not exactly 3 or 4 sections in DID")
 		return false
 	}
@@ -162,28 +156,30 @@ func PrepareDID(did string) ([]string, bool) {
 }
 
 func GetDocument(targetAddress string, bound *BoundedContract) (*DIDDocument, [32]byte, error) {
-	txBlk, err := bound.instance.Changed(nil, common.HexToAddress(targetAddress))
+	txBlk, err := bound.Instance.Changed(nil, common.HexToAddress(targetAddress))
 	if err != nil {
 		return nil, [32]byte{0}, err
 	}
 
 	document := new(DIDDocument)
+	loc, _ := time.LoadLocation("UTC")
 
-	document.ID = "did:metablox:" + "0x" + bound.chainID.Text(16) + targetAddress
+	document.ID = "did:metablox:" + "0x" + bound.ChainID.Text(16) + ":" + targetAddress
 	document.Context = make([]string, 0)
 	document.Context = append(document.Context, ContextSecp256k1)
 	document.Context = append(document.Context, ContextDID)
-	document.Created = time.Now().Format(time.RFC3339) //todo: need to get this from contract
-	document.Updated = document.Created                //todo: need to get this from contract
-	document.Version = 1                               //todo: need to get this from contract
+	document.Created = time.Now().In(loc).Format(time.RFC3339) //todo: need to get this from contract
+	document.Updated = document.Created                        //todo: need to get this from contract
+	document.Version = 1                                       //todo: need to get this from contract
 
 	VM := VerificationMethod{}
 	VM.ID = document.ID + "#controller"
-	VM.BlockchainAccountId = "eip155:" + bound.chainID.String() + ":" + targetAddress
+	VM.BlockchainAccountId = "eip155:" + bound.ChainID.String() + ":" + targetAddress
 	VM.Controller = document.ID
 	VM.MethodType = Secp256k1Key
 	document.VerificationMethod = append(document.VerificationMethod, VM)
-	document.Authentication = VM.ID + "#controller"
+	document.Authentication = VM.ID
+	document.AssertionMethod = VM.ID
 
 	/*
 		contractAbi, err := abi.JSON(strings.NewReader(string(registry.RegistryABI)))
@@ -192,36 +188,9 @@ func GetDocument(targetAddress string, bound *BoundedContract) (*DIDDocument, [3
 		}
 	*/
 
-	controllerIter, err := bound.instance.RegistryFilterer.FilterDIDControllerChanged(nil, []common.Address{common.HexToAddress(targetAddress)})
-	if err != nil {
-		return nil, [32]byte{0}, err
+	if txBlk.Int64() != big.NewInt(0).Int64() {
+		// We should check on the Event to rebuild the Doc here
 	}
-	for controllerIter.Event != nil {
-		newController := controllerIter.Event.NewController
-		document.VerificationMethod[0].Controller = "did:metablox:" + "0x" + bound.chainID.Text(16) + newController.Hex()
-
-		if !controllerIter.Next() {
-			controllerIter.Close()
-			break
-		}
-	}
-
-	txBlkArr := make([]*big.Int, 0, 0)
-	for txBlk != big.NewInt(0) {
-		txBlkArr = append([]*big.Int{txBlk}, txBlkArr...)
-		document.Version = document.Version + 1
-
-		/*
-			query := ethereum.FilterQuery{
-				FromBlock: txBlk,
-				ToBlock:   txBlk,
-				Addresses: []common.Address{
-					bound.contractAddr,
-				},
-			}
-		*/
-	}
-
 	placeholderHash := [32]byte{94, 241, 27, 134, 190, 223, 112, 91, 189, 49, 221, 31, 228, 35, 189, 213, 251, 60, 60, 210, 162, 45, 151, 3, 31, 78, 41, 239, 41, 75, 198, 139}
 	return document, placeholderHash, nil
 }
@@ -250,7 +219,7 @@ func Resolve(did string, options *ResolutionOptions, bound *BoundedContract) (*R
 		return &ResolutionMetadata{Error: "document DID is invalid"}, nil, nil
 	}
 
-	if docID[2] != splitDID[2] { //identifier of the document should match provided did
+	if docID[3] != targetAddress { //identifier of the document should match provided did
 		return &ResolutionMetadata{Error: "generated document DID does not match provided DID"}, nil, nil
 	}
 
@@ -283,6 +252,48 @@ func ResolveRepresentation(did string, options *RepresentationResolutionOptions,
 		}
 		return &RepresentationResolutionMetadata{ContentType: "application/did+json"}, byteStream, readDocumentMeta
 	}
+}
+
+func ChangeController(did string, newController string, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
+
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	identifiers := splitDID[len(splitDID)-1]
+
+	if !common.IsHexAddress(newController) || !common.IsHexAddress(identifiers) {
+		return "", ErrETHAddress
+	}
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = uint64(300000)
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) >= 0 {
+		return "", errors.New("insufficient balance")
+	}
+
+	tx, err := bound.Instance.ChangeController(nil, common.HexToAddress(identifiers), common.HexToAddress(newController))
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
 }
 
 // convert document into byte array so it can be hashed (appears to be unused currently)

@@ -3,9 +3,12 @@ package did
 import (
 	"crypto/ecdsa"
 	"encoding/base64"
+	"encoding/hex"
+	"errors"
 	"math/big"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	gojose "gopkg.in/square/go-jose.v2"
 )
@@ -43,6 +46,16 @@ func CreateJWSSignature(privKey *ecdsa.PrivateKey, message []byte) (string, erro
 	if err != nil {
 		return "", err
 	}
+
+	// Replace the Signature with the SECP256k1r signature
+	sig, err := crypto.Sign(message[:], privKey)
+	if err != nil {
+		return "", err
+	}
+	encodedSig := base64.RawURLEncoding.EncodeToString(sig)
+	splitedSig := strings.Split(compactserialized, ".")
+	compactserialized = splitedSig[0] + "." + splitedSig[1] + "." + encodedSig
+
 	return compactserialized, nil
 }
 
@@ -52,6 +65,8 @@ func VerifyJWSSignature(signature string, expectedFullBlkID string, message []by
 	if (len(partedExpectedBlkID) != 3 && len(partedExpectedBlkID) != 2) || partedExpectedBlkID[0] != "eip155" {
 		return false, ErrInvalidBlockID
 	}
+	expectedAddress := partedExpectedBlkID[len(partedExpectedBlkID)-1]
+
 	partedSig := strings.Split(signature, ".")
 	if len(partedSig) != 3 {
 		return false, ErrInValidSignature
@@ -62,23 +77,83 @@ func VerifyJWSSignature(signature string, expectedFullBlkID string, message []by
 		return false, ErrInValidSignature
 	}
 
-	decodedPubkey, err := crypto.SigToPub(message[:], sig)
+	recoveredPubKey, err := crypto.SigToPub(message[:], sig)
 	if err != nil {
 		return false, ErrInValidSignature
 	}
 
-	decodedBlkID := crypto.PubkeyToAddress(*decodedPubkey).Hex()
-	if decodedBlkID != partedExpectedBlkID[len(partedExpectedBlkID)-1] {
-		return false, nil
-	}
-	return true, nil
+	recoveredAddress := crypto.PubkeyToAddress(*recoveredPubKey).Hex()
+	return recoveredAddress != expectedAddress, nil
 }
 
-// make sure that the address created from pubKey matches the address stored in vm's BlockChainAccountId field
-func CompareAddresses(vm VerificationMethod, pubKey *ecdsa.PublicKey) bool {
-	givenAddress := crypto.PubkeyToAddress(*pubKey)
-	givenAccountID := "eip155:" + issuerChainId.String() + ":" + givenAddress.Hex()
-	if vm.BlockchainAccountId != givenAccountID {
+// Function to verify an Ethereum EIP-712 signature
+func VerifyEIP712Signature(signature string, expectedFullBlkID string, message []byte) (bool, error) {
+
+	partedExpectedBlkID := strings.Split(expectedFullBlkID, ":")
+	if (len(partedExpectedBlkID) != 3 && len(partedExpectedBlkID) != 2) || partedExpectedBlkID[0] != "eip155" {
+		return false, ErrInvalidBlockID
+	}
+
+	expectedAddress := partedExpectedBlkID[len(partedExpectedBlkID)-1]
+
+	// Parse the signature
+	sig, err := hex.DecodeString(signature)
+	if err != nil {
+		return false, err
+	}
+	if len(sig) != 65 {
+		return false, errors.New("invalid signature length")
+	}
+	/*
+		r := new(big.Int).SetBytes(sig[:32])
+		s := new(big.Int).SetBytes(sig[32:64])
+		v := sig[64]
+	*/
+
+	// Recover the public key
+	recoveredPubKey, err := crypto.SigToPub(message, sig)
+	if err != nil {
+		return false, err
+	}
+
+	// Compute the address
+	recoveredAddress := crypto.PubkeyToAddress(*recoveredPubKey).Hex()
+
+	// Compare the addresses
+	return recoveredAddress == expectedAddress, nil
+}
+
+func CreateEIP712Signature(privKey *ecdsa.PrivateKey, typedDataHash common.Hash) (string, error) {
+
+	signature, err := crypto.Sign(typedDataHash.Bytes(), privKey)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(signature), nil
+}
+
+// Function to compare two Ethereum addresses by checking the identifiers and chainIDs
+func CompareAddresses(address1 string, address2 string) bool {
+	// Parse the addresses
+	parsedAddress1 := strings.Split(address1, ":")
+	parsedAddress2 := strings.Split(address2, ":")
+	if len(parsedAddress1) == len(parsedAddress2) {
+		return address1 == address2
+	}
+
+	// Check the identifiers
+	if parsedAddress1[0] != parsedAddress2[0] {
+		return false
+	}
+
+	// Check the chainIDs
+	if parsedAddress1[1] != parsedAddress2[1] {
+		return false
+	}
+
+	// Check the addresses
+	if parsedAddress1[2] != parsedAddress2[2] {
 		return false
 	}
 

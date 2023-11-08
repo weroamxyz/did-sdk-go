@@ -12,6 +12,11 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+	"github.com/gibson042/canonicaljson-go"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -45,7 +50,7 @@ func Init(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	issuerDID = GenerateDIDString(issuerPrivateKey)
+	issuerDID = GenerateDIDString(&issuerPrivateKey.PublicKey, "0x"+issuerChainId.Text(16))
 	issuerChainId = cfg.ChainId
 	return nil
 }
@@ -65,11 +70,21 @@ func keystoreToPrivateKey(privateKeyFile, password string) (*ecdsa.PrivateKey, e
 }
 
 // create a credential proof using the provided verification method string
-func CreateProof(vm string) VCProof {
-	vcProof := CreateVCProof()
+func CreateVCSecp256k1Proof(vm string) Secp256k1VCProof {
+	vcProof := CreateSecp256k1VCProof()
 	vcProof.Type = Secp256k1Sig
 	vcProof.VerificationMethod = vm
 	vcProof.JWSSignature = ""
+	vcProof.Created = time.Now().UTC().Format(time.RFC3339)
+	vcProof.ProofPurpose = PurposeAuth
+	return *vcProof
+}
+
+func CreateVCEIP712Proof(vm string) EIP712VCProof {
+	vcProof := CreateEIP712VCProof()
+	vcProof.Type = EIP712Sig
+	vcProof.VerificationMethod = vm
+	vcProof.ProofValue = ""
 	vcProof.Created = time.Now().UTC().Format(time.RFC3339)
 	vcProof.ProofPurpose = PurposeAuth
 	return *vcProof
@@ -108,14 +123,24 @@ func ConvertTimesToDBFormat(vc *VerifiableCredential) error {
 }
 
 // Base function for creating VCs. Called by any function that creates a type of VC to initialize universal values
-func CreateVC(issuerDocument *DIDDocument) (*VerifiableCredential, error) {
-	context := []string{ContextSecp256k1, ContextCredential}
+func CreateVC(issuerDocument *DIDDocument, proofType string) (*VerifiableCredential, error) {
 	vcType := []string{TypeCredential}
 	loc, _ := time.LoadLocation("UTC")
 	expirationDate := time.Now().In(loc).AddDate(10, 0, 0).Format(time.RFC3339) //arbitrarily setting VCs to last for 10 years for the moment, can change when necessary
 	description := ""
 
-	vcProof := CreateProof(issuerDocument.Authentication)
+	var vcProof interface{}
+	var context []string
+	switch proofType {
+	case Secp256k1Sig:
+		vcProof = CreateVCSecp256k1Proof(issuerDocument.Authentication)
+		context = []string{ContextSecp256k1, ContextCredential}
+	case EIP712Sig:
+		vcProof = CreateVCEIP712Proof(issuerDocument.Authentication)
+		context = []string{ContextEIP712, ContextCredential}
+	default:
+		return nil, ErrUnknownProofType
+	}
 
 	newVC := NewVerifiableCredential(context, "0", vcType, issuerDocument.ID, time.Now().In(loc).Format(time.RFC3339), expirationDate, description, nil, vcProof, false)
 
@@ -144,29 +169,38 @@ func JsonToVC(jsonVC []byte) (*VerifiableCredential, error) {
 // Need to make sure that the stated issuer of the VC actually created it (using the proof alongside the issuer's verification methods),
 // as well as check that the issuer is a trusted source
 func VerifyVC(vc *VerifiableCredential, bound *BoundedContract) (bool, error) {
-	if vc.Issuer != issuerDID { //issuer of VC must be the same issuer stored here
-		return false, ErrUnknownIssuer
-	}
+	/*
+		if vc.Issuer != issuerDID { //issuer of VC must be the same issuer stored here
+			return false, ErrUnknownIssuer
+		}
+	*/
 
 	resolutionMeta, issuerDoc, _ := Resolve(vc.Issuer, CreateResolutionOptions(), bound)
 	if resolutionMeta.Error != "" {
 		return false, errors.New(resolutionMeta.Error)
 	}
 
-	//get verification method from the issuer DID document which is listed in the vc proof
-	targetVM, err := issuerDoc.RetrieveVerificationMethod(vc.Proof.VerificationMethod)
-	if err != nil {
-		return false, err
-	}
-
-	//currently only support EcdsaSecp256k1Signature2019, but it's possible we could introduce more
-	switch vc.Proof.Type {
-	case Secp256k1Sig:
+	switch proof := vc.Proof.(type) {
+	case Secp256k1VCProof:
+		//get verification method from the issuer DID document which is listed in the vc proof
+		targetVM, err := issuerDoc.RetrieveVerificationMethod(proof.VerificationMethod)
+		if err != nil {
+			return false, err
+		}
 		if targetVM.MethodType != Secp256k1Key { //vm must be the same type as the proof
 			return false, ErrSecp256k1WrongVMType
 		}
-
-		return VerifyVCSecp256k1(vc, targetVM.BlockchainAccountId)
+		return VerifySecp256k1VC(vc, targetVM.BlockchainAccountId)
+	case EIP712VCProof:
+		//get verification method from the issuer DID document which is listed in the vc proof
+		targetVM, err := issuerDoc.RetrieveVerificationMethod(proof.VerificationMethod)
+		if err != nil {
+			return false, err
+		}
+		if targetVM.MethodType != Secp256k1Key { //vm must be the same type as the proof
+			return false, ErrSecp256k1WrongVMType
+		}
+		return VerifyEIP712VC(vc, bound, targetVM.BlockchainAccountId)
 	default:
 		return false, ErrUnknownProofType
 	}
@@ -175,17 +209,44 @@ func VerifyVC(vc *VerifiableCredential, bound *BoundedContract) (bool, error) {
 // Verify that the provided public key matches the signature in the proof.
 // Since we've made sure that the address in the issuer vm matches this public key,
 // verifying the signature here proves that the signature was made with the issuer's private key
-func VerifyVCSecp256k1(vc *VerifiableCredential, expectedBlkID string) (bool, error) {
+func VerifySecp256k1VC(vc *VerifiableCredential, expectedBlkID string) (bool, error) {
 	copiedVC := *vc
 	//have to make sure to remove the signature from the copy, as the original did not have a signature at the time the signature was generated
-	copiedVC.Proof.JWSSignature = ""
-	hashedVC := sha256.Sum256(ConvertVCToBytes(copiedVC))
+	proof, ok := copiedVC.Proof.(Secp256k1VCProof)
+	if !ok {
+		return false, ErrWrongProofType
+	}
+	jwsSignature := proof.JWSSignature
+	proof.JWSSignature = ""
+	copiedVC.Proof = proof
 
-	result, err := VerifyJWSSignature(vc.Proof.JWSSignature, expectedBlkID, hashedVC[:])
+	vcBytes, err := ConvertVCToJWTPayload(copiedVC)
+	if err != nil {
+		return false, err
+	}
+
+	hashedVC := sha256.Sum256(vcBytes)
+
+	result, err := VerifyJWSSignature(jwsSignature, expectedBlkID, hashedVC[:])
 	if err != nil {
 		return false, err
 	}
 	return result, nil
+}
+
+func VerifyEIP712VC(credential *VerifiableCredential, bound *BoundedContract, expectedBlkID string) (bool, error) {
+
+	EIP712DataHash, err := GenerateEIP712VCTypedDataHash(credential, *bound)
+	if err != nil {
+		return false, err
+	}
+
+	EIP712Proof, ok := credential.Proof.(EIP712VCProof)
+	if !ok {
+		return false, ErrWrongProofType
+	}
+
+	return VerifyEIP712Signature(EIP712Proof.ProofValue, expectedBlkID, EIP712DataHash.Bytes())
 }
 
 // convert credential to bytes so it can be hashed
@@ -222,4 +283,122 @@ func ConvertVCToBytes(vc VerifiableCredential) []byte {
 	}
 
 	return convertedBytes
+}
+
+func ConvertVCToJWTPayload(vc VerifiableCredential) (payloadByte []byte, err error) {
+
+	var payload JwtCredentialPayload
+	payloadByte = []byte{}
+
+	payload.Iss = vc.Issuer
+	payload.Jti = vc.ID
+	expirationTime, err := time.Parse(time.RFC3339, vc.ExpirationDate)
+	if err != nil {
+		return payloadByte, err
+	}
+	payload.Exp = expirationTime.Unix()
+	issuanceTime, err := time.Parse(time.RFC3339, vc.IssuanceDate)
+	if err != nil {
+		return payloadByte, err
+	}
+	payload.Iat = issuanceTime.Unix()
+	payload.Vc.Context = vc.Context
+	payload.Vc.Type = vc.Type
+	payload.Vc.CredentialSubject = vc.CredentialSubject
+	switch vc.Type[1] {
+	case TypeWifi:
+		m := &WifiAccessInfo{}
+		err := mapstructure.Decode(vc.CredentialSubject, m)
+		if err != nil {
+			return payloadByte, err
+		}
+		payload.Vc.CredentialSubject = m
+		payload.Sub = m.ID
+
+	case TypeMining:
+		m := &MiningLicenseInfo{}
+		err := mapstructure.Decode(vc.CredentialSubject, m)
+		if err != nil {
+			return payloadByte, err
+		}
+		payload.Vc.CredentialSubject = m
+		payload.Sub = m.ID
+	default:
+		return payloadByte, ErrUnknownCredentialType
+	}
+
+	payloadByte, err = canonicaljson.Marshal(payload)
+	if err != nil {
+		return payloadByte, err
+	}
+
+	return payloadByte, nil
+}
+
+func GenerateEIP712VCTypedDataHash(vc *VerifiableCredential, bound BoundedContract) (common.Hash, error) {
+
+	domain := apitypes.TypedDataDomain{
+		Name:              EIP712DomainName,
+		Version:           EIP712DomainVersion,
+		ChainId:           math.NewHexOrDecimal256(bound.ChainID.Int64()),
+		VerifyingContract: bound.ContractAddr.Hex(),
+	}
+
+	types := apitypes.Types{
+		"EIP712Domain": {
+			{Name: "name", Type: "string"},
+			{Name: "version", Type: "string"},
+			{Name: "chainId", Type: "uint256"},
+			{Name: "verifyingContract", Type: "address"},
+		},
+		"VerifiableCredential": {
+			{Name: "@context", Type: "string[]"},
+			{Name: "id", Type: "string"},
+			{Name: "type", Type: "string[]"},
+			{Name: "issuer", Type: "string"},
+			{Name: "credentialSubjectData", Type: "bytes"},
+			{Name: "issuanceDate", Type: "string"},
+			{Name: "expirationDate", Type: "string"},
+			{Name: "revoked", Type: "bool"},
+		},
+	}
+
+	subjectBytes, err := canonicaljson.Marshal(vc.CredentialSubject)
+	if err != nil {
+		return common.Hash{0}, err
+	}
+
+	message := apitypes.TypedDataMessage{
+		"@context":              vc.Context,
+		"id":                    vc.ID,
+		"type":                  vc.Type,
+		"issuer":                vc.Issuer,
+		"credentialSubjectData": crypto.Keccak256(subjectBytes),
+		"issuanceDate":          vc.IssuanceDate,
+		"expirationDate":        vc.ExpirationDate,
+		"revoked":               vc.Revoked,
+	}
+
+	typedData := apitypes.TypedData{
+		Types:       types,
+		PrimaryType: EIP712DomainVCPrimayType,
+		Domain:      domain,
+		Message:     message,
+	}
+
+	typedDataHash, err := typedData.HashStruct(typedData.PrimaryType, typedData.Message)
+	if err != nil {
+		return common.Hash{0}, err
+	}
+
+	domainSeparator, err := typedData.HashStruct("EIP712Domain", domain.Map())
+	if err != nil {
+		return common.Hash{0}, err
+	}
+
+	rawData := []byte(fmt.Sprintf("\x19\x01%s%s", string(domainSeparator), string(typedDataHash)))
+	hashBytes := crypto.Keccak256(rawData)
+	hash := common.BytesToHash(hashBytes)
+
+	return hash, nil
 }
