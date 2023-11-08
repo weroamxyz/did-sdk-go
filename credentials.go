@@ -169,11 +169,9 @@ func JsonToVC(jsonVC []byte) (*VerifiableCredential, error) {
 // Need to make sure that the stated issuer of the VC actually created it (using the proof alongside the issuer's verification methods),
 // as well as check that the issuer is a trusted source
 func VerifyVC(vc *VerifiableCredential, bound *BoundedContract) (bool, error) {
-	/*
-		if vc.Issuer != issuerDID { //issuer of VC must be the same issuer stored here
-			return false, ErrUnknownIssuer
-		}
-	*/
+	if vc.Issuer != issuerDID { //issuer of VC must be the same issuer stored here
+		return false, ErrUnknownIssuer
+	}
 
 	resolutionMeta, issuerDoc, _ := Resolve(vc.Issuer, CreateResolutionOptions(), bound)
 	if resolutionMeta.Error != "" {
