@@ -286,7 +286,7 @@ func GenerateEIP712VPTypedDataHash(vp *VerifiablePresentation, bound BoundedCont
 
 	typedData := apitypes.TypedData{
 		Types:       types,
-		PrimaryType: EIP712DomainVCPrimayType,
+		PrimaryType: EIP712DomainVPPrimayType,
 		Domain:      domain,
 		Message:     message,
 	}

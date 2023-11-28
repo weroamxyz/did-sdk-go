@@ -254,17 +254,13 @@ func ResolveRepresentation(did string, options *RepresentationResolutionOptions,
 	}
 }
 
-func ChangeController(did string, newController string, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
+func ChangeController(did string, newController common.Address, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
 
 	splitDID, valid := PrepareDID(did)
 	if !valid {
 		return "", ErrInvalidDID
 	}
 	identifiers := splitDID[len(splitDID)-1]
-
-	if !common.IsHexAddress(newController) || !common.IsHexAddress(identifiers) {
-		return "", ErrETHAddress
-	}
 
 	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
 	if err != nil {
@@ -284,11 +280,347 @@ func ChangeController(did string, newController string, privKey *ecdsa.PrivateKe
 		return "", err
 	}
 
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) >= 0 {
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
 		return "", errors.New("insufficient balance")
 	}
 
-	tx, err := bound.Instance.ChangeController(nil, common.HexToAddress(identifiers), common.HexToAddress(newController))
+	tx, err := bound.Instance.ChangeController(auth, common.HexToAddress(identifiers), newController)
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
+}
+
+func ChangeControllerPermit(did string, newController common.Address, privKey *ecdsa.PrivateKey, deadlinne big.Int, signature []byte, bound *BoundedContract) (string, error) {
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	identifiers := splitDID[len(splitDID)-1]
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = uint64(300000)
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
+		return "", errors.New("insufficient balance")
+	}
+
+	tx, err := bound.Instance.ChangeControllerPermit(auth, common.HexToAddress(identifiers), newController, &deadlinne, signature)
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
+}
+
+func AddDelegate(did string, delegate common.Address, delegateType [32]byte, validity big.Int, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
+
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	identifiers := splitDID[len(splitDID)-1]
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = uint64(300000)
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
+		return "", errors.New("insufficient balance")
+	}
+
+	tx, err := bound.Instance.AddDelegate(auth, common.HexToAddress(identifiers), delegateType, delegate, &validity)
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
+}
+
+func AddDelegatePermit(did string, delegate common.Address, delegateType [32]byte, validity big.Int, privKey *ecdsa.PrivateKey, deadline big.Int, signature []byte, bound *BoundedContract) (string, error) {
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	identifiers := splitDID[len(splitDID)-1]
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = uint64(300000)
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
+		return "", errors.New("insufficient balance")
+	}
+
+	tx, err := bound.Instance.AddDelegatePermit(auth, common.HexToAddress(identifiers), delegateType, delegate, &validity, &deadline, signature)
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
+}
+
+func RevokeDelegate(did string, delegate common.Address, delegateType [32]byte, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
+
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	identifiers := splitDID[len(splitDID)-1]
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = uint64(300000)
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
+		return "", errors.New("insufficient balance")
+	}
+
+	tx, err := bound.Instance.RevokeDelegate(auth, common.HexToAddress(identifiers), delegateType, delegate)
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
+}
+
+func RevokeDelegatePermit(did string, delegate common.Address, delegateType [32]byte, privKey *ecdsa.PrivateKey, deadline big.Int, signature []byte, bound *BoundedContract) (string, error) {
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	identifiers := splitDID[len(splitDID)-1]
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = uint64(300000)
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
+		return "", errors.New("insufficient balance")
+	}
+
+	tx, err := bound.Instance.RevokeDelegatePermit(auth, common.HexToAddress(identifiers), delegateType, delegate, &deadline, signature)
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
+}
+
+func ChangeAttribute(did string, attribute [32]byte, attributeValue []byte, validity big.Int, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
+
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	identifiers := splitDID[len(splitDID)-1]
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = uint64(300000)
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
+		return "", errors.New("insufficient balance")
+	}
+
+	tx, err := bound.Instance.SetAttribute(auth, common.HexToAddress(identifiers), attribute, attributeValue, &validity)
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
+}
+
+func ChangeAttributePermit(did string, attribute [32]byte, attributeValue []byte, validity big.Int, privKey *ecdsa.PrivateKey, deadline big.Int, signature []byte, bound *BoundedContract) (string, error) {
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	identifiers := splitDID[len(splitDID)-1]
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = uint64(300000)
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
+		return "", errors.New("insufficient balance")
+	}
+
+	tx, err := bound.Instance.SetAttributePermit(auth, common.HexToAddress(identifiers), attribute, attributeValue, &validity, &deadline, signature)
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
+}
+
+func RevokeAttribute(did string, attribute [32]byte, attributeValue []byte, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	identifiers := splitDID[len(splitDID)-1]
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = uint64(300000)
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
+		return "", errors.New("insufficient balance")
+	}
+
+	tx, err := bound.Instance.RevokeAttribute(auth, common.HexToAddress(identifiers), attribute, attributeValue)
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
+}
+
+func RevokeAttributePermit(did string, attribute [32]byte, attributeValue []byte, privKey *ecdsa.PrivateKey, deadline big.Int, signature []byte, bound *BoundedContract) (string, error) {
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	identifiers := splitDID[len(splitDID)-1]
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = uint64(300000)
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
+		return "", errors.New("insufficient balance")
+	}
+
+	tx, err := bound.Instance.RevokeAttributePermit(auth, common.HexToAddress(identifiers), attribute, attributeValue, &deadline, signature)
 	if err != nil {
 		return "", err
 	}

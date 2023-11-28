@@ -5,47 +5,49 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	gojose "gopkg.in/square/go-jose.v2"
 )
 
 // use a private key and a message to create a JWS format signature
 func CreateJWSSignature(privKey *ecdsa.PrivateKey, message []byte) (string, error) {
-	signer, err := gojose.NewSigner(gojose.SigningKey{Algorithm: gojose.ES256, Key: privKey}, nil)
-	if err != nil {
-		return "", err
-	}
-	c := privKey.PublicKey.Curve
-	N := c.Params().N
+	/*
+		signer, err := gojose.NewSigner(gojose.SigningKey{Algorithm: gojose.ES256, Key: privKey}, nil)
+		if err != nil {
+			return "", err
+		}
+		c := privKey.PublicKey.Curve
+		N := c.Params().N
 
-	signature, err := signer.Sign(message)
-	if err != nil {
-		return "", err
-	}
+		signature, err := signer.Sign(message)
+		if err != nil {
+			return "", err
+		}
 
-	sBytes := make([]byte, 32)
-	copy(sBytes, signature.Signatures[0].Signature[32:])
-	var s = new(big.Int).SetBytes(sBytes)
+		sBytes := make([]byte, 32)
+		copy(sBytes, signature.Signatures[0].Signature[32:])
+		var s = new(big.Int).SetBytes(sBytes)
 
-	m := new(big.Int).Div(N, big.NewInt(2))
-	q := s.Cmp(m)
-	if q > 0 || s.Cmp(big.NewInt(1)) < 0 {
-		sub := new(big.Int).Sub(N, s)
-		s = new(big.Int).Mod(sub, N)
-		newBytes := s.Bytes()
-		sByte := make([]byte, 32)
-		copy(sByte[32-len(newBytes):], newBytes)
-		copy(signature.Signatures[0].Signature[32:], sByte)
-	}
+		m := new(big.Int).Div(N, big.NewInt(2))
+		q := s.Cmp(m)
+		if q > 0 || s.Cmp(big.NewInt(1)) < 0 {
+			sub := new(big.Int).Sub(N, s)
+			s = new(big.Int).Mod(sub, N)
+			newBytes := s.Bytes()
+			sByte := make([]byte, 32)
+			copy(sByte[32-len(newBytes):], newBytes)
+			copy(signature.Signatures[0].Signature[32:], sByte)
+		}
 
-	compactserialized, err := signature.DetachedCompactSerialize()
-	if err != nil {
-		return "", err
-	}
+		compactserialized, err := signature.DetachedCompactSerialize()
+		if err != nil {
+			return "", err
+		}
+	*/
+
+	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"ES256K-R","b64":false,"crit":["b64"]}`))
 
 	// Replace the Signature with the SECP256k1r signature
 	sig, err := crypto.Sign(message[:], privKey)
@@ -53,8 +55,7 @@ func CreateJWSSignature(privKey *ecdsa.PrivateKey, message []byte) (string, erro
 		return "", err
 	}
 	encodedSig := base64.RawURLEncoding.EncodeToString(sig)
-	splitedSig := strings.Split(compactserialized, ".")
-	compactserialized = splitedSig[0] + "." + splitedSig[1] + "." + encodedSig
+	compactserialized := header + "." + "." + encodedSig
 
 	return compactserialized, nil
 }
