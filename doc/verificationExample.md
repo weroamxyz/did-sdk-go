@@ -115,6 +115,9 @@ eyJhbGciOiJFUzI1NkstUiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..8P9LtxB41OyPkNrS_w
 ```
 
 # Example VP:
+
+The nonce is created by joining the current Block Height and the Block Address of the expected audience (Miner Address for Validator VP, and Validator Address for Miner VP)
+
 ## JWS:
 
 ### Unsigned VP
