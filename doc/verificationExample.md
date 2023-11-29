@@ -44,9 +44,7 @@ Produce JWS with header
 ```json
 {"alg":"ES256K-R","b64":false,"crit":["b64"]}
 ```
-Payload is ommited
-Signature creates with Secp256k1Recovery
-Encoded in base64
+Payload is ommited, Signature creates with Secp256k1Recovery, Encoded in base64
 ```
 eyJhbGciOiJFUzI1NkstUiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..8P9LtxB41OyPkNrS_wR8EsXGu9L7YbHG1wRZ_pracN1-ERNLNLP6USMfcfrfpsX_ZVzl6BbipbJlIh89st2l2gE
 ```
@@ -173,9 +171,7 @@ Produce JWS with header
 ```json
 {"alg":"ES256K-R","b64":false,"crit":["b64"]}
 ```
-Payload is ommited
-Signature creates with Secp256k1Recovery
-Encoded in base64
+Payload is ommited, Signature creates with Secp256k1Recovery, Encoded in base64
 ```
 eyJhbGciOiJFUzI1NkstUiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..eGAmRE26etHoCFkPiojSPmuFeiiDiWSnskNlX4arFDZhUwNkf58aeIEOElBLulGnD_cFyterMoUmOQpG-xVIVgE
 ```
