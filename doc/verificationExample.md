@@ -40,6 +40,17 @@ did:metablox:gorli:0x53b8702D8621b02B8527E9c0962b1424edabA665
 {"exp":2016861618,"iat":1701242418,"iss":"did:metablox:0x5:0xAf9Aa558f25aB18C9b68AB34C818D659EB56035A","jti":"0","sub":"did:metablox:gorli:0x53b8702D8621b02B8527E9c0962b1424edabA665","vc":{"@context":["https://identity.foundation/EcdsaSecp256k1RecoverySignature2020#","https://www.w3.org/2018/credentials/v1"],"credentialSubject":{"id":"did:metablox:gorli:0x53b8702D8621b02B8527E9c0962b1424edabA665","model":"Antminer S19 Pro","name":"John Doe","serial":"1234567890abcdef"},"type":["VerifiableCredential","MiningLicense"]}}
 ```
 
+Produce JWS with header
+```json
+{"alg":"ES256K-R","b64":false,"crit":["b64"]}
+```
+Payload is ommited
+Signature creates with Secp256k1Recovery
+Encoded in base64
+```
+eyJhbGciOiJFUzI1NkstUiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..8P9LtxB41OyPkNrS_wR8EsXGu9L7YbHG1wRZ_pracN1-ERNLNLP6USMfcfrfpsX_ZVzl6BbipbJlIh89st2l2gE
+```
+
 ### Signed VC
 ```json
 {
@@ -156,6 +167,17 @@ did:metablox:gorli:0x53b8702D8621b02B8527E9c0962b1424edabA665
 ### JWT For Signing
 ```json
 {"iat":1701242561,"iss":"did:metablox:0x5:0x53b8702D8621b02B8527E9c0962b1424edabA665","nonce":"lastBlkNum_audienceAddress","vp":{"@context":["https://identity.foundation/EcdsaSecp256k1RecoverySignature2020#","https://www.w3.org/2018/credentials/v1"],"type":["VerifiablePresentation"],"verifiableCredential":[{"@context":["https://identity.foundation/EcdsaSecp256k1RecoverySignature2020#","https://www.w3.org/2018/credentials/v1"],"credentialSubject":{"id":"did:metablox:gorli:0x53b8702D8621b02B8527E9c0962b1424edabA665","model":"Antminer S19 Pro","name":"John Doe","serial":"1234567890abcdef"},"description":"","expirationDate":"2033-11-29T07:20:18Z","id":"0","issuanceDate":"2023-11-29T07:20:18Z","issuer":"did:metablox:0x5:0xAf9Aa558f25aB18C9b68AB34C818D659EB56035A","proof":{"created":"2023-11-29T07:20:18Z","jws":"eyJhbGciOiJFUzI1NkstUiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..8P9LtxB41OyPkNrS_wR8EsXGu9L7YbHG1wRZ_pracN1-ERNLNLP6USMfcfrfpsX_ZVzl6BbipbJlIh89st2l2gE","proofPurpose":"Authentication","type":"EcdsaSecp256k1Signature2019","verificationMethod":"did:metablox:0x5:0xAf9Aa558f25aB18C9b68AB34C818D659EB56035A#controller"},"revoked":false,"type":["VerifiableCredential","MiningLicense"]}]}}
+```
+
+Produce JWS with header
+```json
+{"alg":"ES256K-R","b64":false,"crit":["b64"]}
+```
+Payload is ommited
+Signature creates with Secp256k1Recovery
+Encoded in base64
+```
+eyJhbGciOiJFUzI1NkstUiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..eGAmRE26etHoCFkPiojSPmuFeiiDiWSnskNlX4arFDZhUwNkf58aeIEOElBLulGnD_cFyterMoUmOQpG-xVIVgE
 ```
 
 ### Signed VP 
