@@ -97,13 +97,13 @@ Note： Harmony Mainnet DID can also be:
   }
 }
 ```
-### Proof Types
+# Proof Types
 
 Currently we supports two methods of proof types, EcdsaSecp256k1Signature2019 in JWT and EIP712
 
 ## VC
 
-# JWS:
+### JWS:
 The JWS is calculated by converting the VC document into a JWT first, mapping and adding all the corresponding fields. The JWT is canonicalized so the result Hash could be deterministic.
 
 Original Document:
@@ -175,7 +175,7 @@ Resulting Proof is as followd.
 }
 ```
 
-# EIP712:
+### EIP712:
 The defined EIP712 Types for VC is as below,
 ```json
 {
@@ -245,7 +245,7 @@ Full Document:
 ```
 
 ## VP
-# JWS
+### JWS
 VP is generated similiar to VC, first we would transform the VP document into a JWT, then use the SHA256 Hash of the Canonicalied JWT to calculate the JWS
 
 Original Document:
@@ -354,7 +354,7 @@ The result:
 }
 ```
 
-# EIP712:
+### EIP712:
 Similiar to the VC, we have defined the EIP712 struct as well.
 he EIP712 Doamin Seperator Name is "EIP712Verifiable", Primary Type is "VerifiablePresentation".
 The "verifiableCredentialData" is the Keccak256 Hash for the Canonicalized JSON of Verifiable Credential Array.
