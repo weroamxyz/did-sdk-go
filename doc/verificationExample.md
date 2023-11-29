@@ -149,15 +149,7 @@ did:metablox:gorli:0x53b8702D8621b02B8527E9c0962b1424edabA665
       "revoked": false
     }
   ],
-  "holder": "did:metablox:0x5:0x53b8702D8621b02B8527E9c0962b1424edabA665",
-  "proof": {
-    "type": "EcdsaSecp256k1Signature2019",
-    "created": "2023-11-29T15:22:41+08:00",
-    "verificationMethod": "did:metablox:0x5:0x53b8702D8621b02B8527E9c0962b1424edabA665#controller",
-    "proofPurpose": "Authentication",
-    "jws": "eyJhbGciOiJFUzI1NkstUiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..eGAmRE26etHoCFkPiojSPmuFeiiDiWSnskNlX4arFDZhUwNkf58aeIEOElBLulGnD_cFyterMoUmOQpG-xVIVgE",
-    "nonce": "lastBlkNum_audienceAddress"
-  }
+  "holder": "did:metablox:0x5:0x53b8702D8621b02B8527E9c0962b1424edabA665"
 }
 ```
 
