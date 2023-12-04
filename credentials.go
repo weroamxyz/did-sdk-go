@@ -50,8 +50,8 @@ func Init(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	issuerDID = GenerateDIDString(&issuerPrivateKey.PublicKey, "0x"+issuerChainId.Text(16))
 	issuerChainId = cfg.ChainId
+	issuerDID = GenerateDIDString(&issuerPrivateKey.PublicKey, "0x"+issuerChainId.Text(16))
 	return nil
 }
 
