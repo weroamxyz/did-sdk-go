@@ -17,22 +17,24 @@ import (
 )
 
 func CreateVPSecp256k1Proof(vm string, nonce string) Secp256k1VPProof {
+	loc, _ := time.LoadLocation("UTC")
 	presentationProof := CreateSecp256k1VPProof()
 	presentationProof.Type = Secp256k1Sig
 	presentationProof.VerificationMethod = vm
 	presentationProof.JWSSignature = ""
-	presentationProof.Created = time.Now().Format(time.RFC3339)
+	presentationProof.Created = time.Now().In(loc).Format(time.RFC3339)
 	presentationProof.ProofPurpose = "Authentication"
 	presentationProof.Nonce = nonce
 	return *presentationProof
 }
 
 func CreateVPEIP712Proof(vm string, nonce string) EIP712VPProof {
+	loc, _ := time.LoadLocation("UTC")
 	presentationProof := CreateEIP712VPProof()
 	presentationProof.Type = EIP712Sig
 	presentationProof.VerificationMethod = vm
 	presentationProof.ProofValue = ""
-	presentationProof.Created = time.Now().Format(time.RFC3339)
+	presentationProof.Created = time.Now().In(loc).Format(time.RFC3339)
 	presentationProof.ProofPurpose = "Authentication"
 	presentationProof.Nonce = nonce
 	return *presentationProof
