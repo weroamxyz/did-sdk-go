@@ -92,6 +92,8 @@ type JwtCredentialPayload struct {
 		Context           []string    `json:"@context" mapstructure:"@context"`
 		CredentialSubject interface{} `json:"credentialSubject"`
 		Type              []string    `json:"type"`
+		Description       string      `json:"description"`
+		Revoked           bool        `json:"revoked"`
 	} `json:"vc,omitempty"` // Verifiable Credential
 }
 

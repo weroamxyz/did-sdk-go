@@ -302,6 +302,8 @@ func ConvertVCToJWTPayload(vc VerifiableCredential) (payloadByte []byte, err err
 	payload.Iat = issuanceTime.Unix()
 	payload.Vc.Context = vc.Context
 	payload.Vc.Type = vc.Type
+	payload.Vc.Description = vc.Description
+	payload.Vc.Revoked = vc.Revoked
 	payload.Vc.CredentialSubject = vc.CredentialSubject
 	switch vc.Type[1] {
 	case TypeWifi:
