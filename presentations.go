@@ -3,7 +3,6 @@ package did
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -71,7 +70,7 @@ func CreatePresentation(credentials []VerifiableCredential, holderDocument DIDDo
 		if err != nil {
 			return presentation, err
 		}
-		hashedVP := sha256.Sum256(vpBytes)
+		hashedVP := crypto.Keccak256(vpBytes)
 		signatureData, err := CreateJWSSignature(holderPrivKey, hashedVP[:])
 		if err != nil {
 			return nil, err
@@ -169,7 +168,7 @@ func VerifySecp256k1VP(presentation *VerifiablePresentation, expectedBlkID strin
 	if err != nil {
 		return false, err
 	}
-	hashedVP := sha256.Sum256(vpBytes)
+	hashedVP := crypto.Keccak256(vpBytes)
 
 	result, err := VerifyJWSSignature(jwsSignature, expectedBlkID, hashedVP[:])
 	if err != nil {

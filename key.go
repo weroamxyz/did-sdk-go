@@ -54,6 +54,10 @@ func CreateJWSSignature(privKey *ecdsa.PrivateKey, message []byte) (string, erro
 	if err != nil {
 		return "", err
 	}
+
+	// Manually calaulate the V byte by adding 27 to the recovery ID
+	sig[64] += 27
+
 	encodedSig := base64.RawURLEncoding.EncodeToString(sig)
 	compactserialized := header + "." + "." + encodedSig
 
@@ -78,13 +82,22 @@ func VerifyJWSSignature(signature string, expectedFullBlkID string, message []by
 		return false, ErrInValidSignature
 	}
 
+	// Manually calaulate the Recovery ID by subtracting 27 from the V byte
+	if len(sig) != 65 {
+		return false, ErrInValidSignature
+	}
+
+	if sig[64] != 0x00 && sig[64] != 0x01 {
+		sig[64] -= 27
+	}
+
 	recoveredPubKey, err := crypto.SigToPub(message[:], sig)
 	if err != nil {
 		return false, ErrInValidSignature
 	}
 
 	recoveredAddress := crypto.PubkeyToAddress(*recoveredPubKey).Hex()
-	return recoveredAddress != expectedAddress, nil
+	return recoveredAddress == expectedAddress, nil
 }
 
 // Function to verify an Ethereum EIP-712 signature

@@ -3,7 +3,6 @@ package did
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -223,7 +222,7 @@ func VerifySecp256k1VC(vc *VerifiableCredential, expectedBlkID string) (bool, er
 		return false, err
 	}
 
-	hashedVC := sha256.Sum256(vcBytes)
+	hashedVC := crypto.Keccak256(vcBytes)
 
 	result, err := VerifyJWSSignature(jwsSignature, expectedBlkID, hashedVC[:])
 	if err != nil {
