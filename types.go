@@ -4,7 +4,7 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 
-	"github.com/MetaBloxIO/did-sdk-go/registry"
+	"github.com/MetaBloxIO/did-sdk-go/v2/registry"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"

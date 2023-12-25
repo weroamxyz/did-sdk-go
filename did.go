@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MetaBloxIO/did-sdk-go/registry"
+	"github.com/MetaBloxIO/did-sdk-go/v2/registry"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
