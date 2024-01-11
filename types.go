@@ -13,6 +13,7 @@ import (
 type ContractConfig struct {
 	RpcUrl       string
 	ContractAddr string
+	ChainName    string
 }
 
 type BoundedContract struct {
@@ -20,6 +21,7 @@ type BoundedContract struct {
 	Client       *ethclient.Client
 	Instance     *registry.Registry
 	ChainID      *big.Int
+	ChainName    string
 }
 
 type DIDDocument struct {

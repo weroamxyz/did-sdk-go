@@ -41,6 +41,7 @@ func GetRegistryInstance(config ContractConfig) (bound *BoundedContract, err err
 	if err != nil {
 		return bound, err
 	}
+	bound.ChainName = config.ChainName
 
 	return bound, nil
 }
@@ -164,7 +165,8 @@ func GetDocument(targetAddress string, bound *BoundedContract) (*DIDDocument, [3
 	document := new(DIDDocument)
 	loc, _ := time.LoadLocation("UTC")
 
-	document.ID = "did:metablox:" + "0x" + bound.ChainID.Text(16) + ":" + targetAddress
+	//document.ID = "did:metablox:" + "0x" + bound.ChainID.Text(16) + ":" + targetAddress
+	document.ID = "did:metablox:" + bound.ChainName + ":" + targetAddress
 	document.Context = make([]string, 0)
 	document.Context = append(document.Context, ContextSecp256k1)
 	document.Context = append(document.Context, ContextDID)
