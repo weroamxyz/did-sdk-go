@@ -41,6 +41,7 @@ type Config struct {
 	Passphrase string   `json:"passphrase"`
 	Keystore   string   `json:"keystore"`
 	ChainId    *big.Int `json:"chainId"`
+	ChainName  string   `json:"chainName"`
 }
 
 func Init(cfg *Config) error {
@@ -50,7 +51,7 @@ func Init(cfg *Config) error {
 		return err
 	}
 	issuerChainId = cfg.ChainId
-	issuerDID = GenerateDIDString(&issuerPrivateKey.PublicKey, "0x"+issuerChainId.Text(16))
+	issuerDID = GenerateDIDString(&issuerPrivateKey.PublicKey, cfg.ChainName)
 	return nil
 }
 

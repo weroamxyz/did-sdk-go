@@ -65,7 +65,7 @@ func CreateDID(privKey *ecdsa.PrivateKey, bound BoundedContract) *DIDDocument {
 	document := new(DIDDocument)
 	loc, _ := time.LoadLocation("UTC")
 
-	document.ID = GenerateDIDString(&privKey.PublicKey, "0x"+bound.ChainID.Text(16))
+	document.ID = GenerateDIDString(&privKey.PublicKey, bound.ChainName)
 	document.Context = make([]string, 0)
 	document.Context = append(document.Context, ContextSecp256k1)
 	document.Context = append(document.Context, ContextDID)

@@ -156,7 +156,7 @@ func VerifyVP(presentation *VerifiablePresentation, bound *BoundedContract) (boo
 func VerifySecp256k1VP(presentation *VerifiablePresentation, expectedBlkID string) (bool, error) {
 	copiedVP := *presentation
 	//have to make sure to remove the signature from the copy, as the original did not have a signature at the time the signature was generated
-	proof, ok := copiedVP.Proof.(Secp256k1VCProof)
+	proof, ok := copiedVP.Proof.(Secp256k1VPProof)
 	if !ok {
 		return false, ErrSecp256k1WrongVMType
 	}
