@@ -6,6 +6,9 @@ did:metablox:gorli:0xAf9Aa558f25aB18C9b68AB34C818D659EB56035A
 c62ee45278d87e5bdd8b7e895e9de16bfd1a3cbc9ddb7462bf9b30fc7502a3e8
 did:metablox:gorli:0x53b8702D8621b02B8527E9c0962b1424edabA665
 
+### NOTE:
+Unix TimeStamp is in second, and the Time Zone is UTC
+
 # Example VC:
 ## JWS:
 
