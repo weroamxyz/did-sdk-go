@@ -77,7 +77,7 @@ func CreateDID(privKey *ecdsa.PrivateKey, bound BoundedContract) *DIDDocument {
 
 	VM := VerificationMethod{}
 	VM.ID = document.ID + "#controller"
-	VM.BlockchainAccountId = "eip155:" + "0x" + bound.ChainID.Text(16) + ":" + address.Hex()
+	VM.BlockchainAccountId = "eip155:" + bound.ChainID.String() + ":" + address.Hex()
 	VM.Controller = document.ID
 	VM.MethodType = Secp256k1Key
 
