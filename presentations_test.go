@@ -30,7 +30,7 @@ func TestCreateVPEIP712Proof(t *testing.T) {
 
 func TestCreatePresentation(t *testing.T) {
 	presenterKey, _ := crypto.HexToECDSA("c62ee45278d87e5bdd8b7e895e9de16bfd1a3cbc9ddb7462bf9b30fc7502a3e8")
-	bound, err := GetRegistryInstance(GoerliNetwork)
+	bound, err := GetRegistryInstance(ChainName2ContractConfigMap[GoerliChainName])
 	assert.NoError(t, err)
 
 	presenterDoc := CreateDID(presenterKey, *bound)
@@ -70,7 +70,7 @@ func TestCreatePresentation(t *testing.T) {
 	err = json.Unmarshal([]byte(vcStr), &vc)
 	assert.NoError(t, err)
 
-	vp, err := CreatePresentation([]VerifiableCredential{vc}, *presenterDoc, presenterKey, "lastBlkNum_audienceAddress", Secp256k1Sig, bound)
+	vp, err := CreatePresentation([]VerifiableCredential{vc}, *presenterDoc, presenterKey, "lastBlkNum_audienceAddress", Secp256k1Sig)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, vp)
@@ -78,8 +78,6 @@ func TestCreatePresentation(t *testing.T) {
 }
 
 func TestVerifyVP(t *testing.T) {
-	bound, err := GetRegistryInstance(GoerliNetwork)
-	assert.NoError(t, err)
 	vpStr :=
 		`{
 		"@context": [
@@ -131,11 +129,11 @@ func TestVerifyVP(t *testing.T) {
 		}
 	  }`
 	var vp VerifiablePresentation
-	err = json.Unmarshal([]byte(vpStr), &vp)
+	err := json.Unmarshal([]byte(vpStr), &vp)
 	assert.NoError(t, err)
 	assert.NotNil(t, vp)
 
-	result, err := VerifyVP(&vp, bound)
+	result, err := VerifyVP(&vp)
 	assert.NoError(t, err)
 	assert.True(t, result)
 }

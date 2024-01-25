@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,12 +15,50 @@ import (
 	"time"
 
 	"github.com/MetaBloxIO/did-sdk-go/v2/registry"
+	"github.com/mr-tron/base58"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
+
+var boundedContracts map[string]*BoundedContract
+
+func initBoundedContracts(chainList []string) error {
+
+	boundedContracts = make(map[string]*BoundedContract)
+	for _, chainName := range chainList {
+		_, ok := ChainName2IdMap[chainName]
+		if !ok {
+			return ErrUnknownChainName
+		}
+
+		contractConfig, ok := ChainName2ContractConfigMap[chainName]
+		if !ok {
+			return ErrUnknownChainName
+		}
+
+		boundedContract, err := GetRegistryInstance(contractConfig)
+		if err != nil {
+			return err
+		}
+
+		boundedContracts[chainName] = boundedContract
+	}
+
+	return nil
+}
+
+func GetBoundedContract(chainName string) (*BoundedContract, error) {
+
+	boundedContract, ok := boundedContracts[chainName]
+	if !ok {
+		return nil, ErrUnknownChainName
+	}
+
+	return boundedContract, nil
+}
 
 func GetRegistryInstance(config ContractConfig) (bound *BoundedContract, err error) {
 
@@ -46,7 +85,26 @@ func GetRegistryInstance(config ContractConfig) (bound *BoundedContract, err err
 	return bound, nil
 }
 
-func GenerateDIDString(pubKey *ecdsa.PublicKey, network string) string {
+func GenerateDIDString(pubKey interface{}, network string) string {
+
+	switch pubKey := pubKey.(type) {
+	case *ecdsa.PublicKey:
+		if network == "solana" {
+			return ""
+		}
+		return generateEthDIDString(pubKey, network)
+	case *ed25519.PublicKey:
+		if network != "solana" {
+			return ""
+		}
+		return generateSolDIDString(pubKey, network)
+	default:
+		return ""
+	}
+
+}
+
+func generateEthDIDString(pubKey *ecdsa.PublicKey, network string) string {
 
 	ethAddress := crypto.PubkeyToAddress(*pubKey)
 
@@ -59,13 +117,21 @@ func GenerateDIDString(pubKey *ecdsa.PublicKey, network string) string {
 
 }
 
+func generateSolDIDString(pubKey *ed25519.PublicKey, network string) string {
+
+	solAddress := base58.Encode(*pubKey)
+
+	return "did:metablox:" + network + ":" + solAddress
+
+}
+
 // TODO: check that this function can be safely removed. The foundation service doesn't need to create new DID documents; however, some other system may want to import this function
-func CreateDID(privKey *ecdsa.PrivateKey, bound BoundedContract) *DIDDocument {
+func CreateDID(publicKey interface{}, bound BoundedContract) *DIDDocument {
 
 	document := new(DIDDocument)
 	loc, _ := time.LoadLocation("UTC")
 
-	document.ID = GenerateDIDString(&privKey.PublicKey, bound.ChainName)
+	document.ID = GenerateDIDString(publicKey, bound.ChainName)
 	document.Context = make([]string, 0)
 	document.Context = append(document.Context, ContextSecp256k1)
 	document.Context = append(document.Context, ContextDID)
@@ -73,11 +139,19 @@ func CreateDID(privKey *ecdsa.PrivateKey, bound BoundedContract) *DIDDocument {
 	document.Updated = document.Created
 	document.Version = 1
 
-	address := crypto.PubkeyToAddress(privKey.PublicKey)
-
 	VM := VerificationMethod{}
+	address := ""
+	if bound.ChainName == "solana" {
+		edPubkey := publicKey.(*ed25519.PublicKey)
+		address = base58.Encode(*edPubkey)
+		VM.BlockchainAccountId = "solana" + ":" + address
+	} else {
+		ecPubkey := publicKey.(*ecdsa.PublicKey)
+		address = crypto.PubkeyToAddress(*ecPubkey).Hex()
+		VM.BlockchainAccountId = "eip155:" + bound.ChainID.String() + ":" + address
+	}
+
 	VM.ID = document.ID + "#controller"
-	VM.BlockchainAccountId = "eip155:" + bound.ChainID.String() + ":" + address.Hex()
 	VM.Controller = document.ID
 	VM.MethodType = Secp256k1Key
 
@@ -125,13 +199,16 @@ func IsDIDValid(did []string) bool {
 		return false
 	}
 
+	chainName := ""
 	identifierSection := ""
 	if len(did) == 3 {
+		chainName = "ethereum"
 		identifierSection = did[2]
 	} else {
+		chainName = did[2]
 		identifierSection = did[3]
 	}
-	if !common.IsHexAddress(identifierSection) {
+	if !common.IsHexAddress(identifierSection) && chainName != "solana" {
 		fmt.Println("Identifier section is formatted incorrectly")
 		return false
 	}
@@ -156,7 +233,39 @@ func PrepareDID(did string) ([]string, bool) {
 	return splitString, valid
 }
 
-func GetDocument(targetAddress string, bound *BoundedContract) (*DIDDocument, [32]byte, error) {
+func GetChainNameFromDID(did string) (string, error) {
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return "", ErrInvalidDID
+	}
+	if len(splitDID) == 3 {
+		return "ethereum", nil
+	}
+
+	_, ok := ChainName2IdMap[splitDID[2]]
+	if !ok {
+		chainID, err := strconv.Atoi(splitDID[2])
+		if err != nil {
+			return "", ErrInvalidDID
+		}
+		chainName, ok := ChainId2NameMap[chainID]
+		if !ok {
+			return "", ErrUnknownChainName
+		}
+		return chainName, nil
+	} else {
+		return splitDID[2], nil
+
+	}
+}
+
+func GetDocument(targetAddress string, chainName string) (*DIDDocument, [32]byte, error) {
+
+	bound, err := GetBoundedContract(chainName)
+	if err != nil {
+		return nil, [32]byte{0}, err
+	}
+
 	txBlk, err := bound.Instance.Changed(nil, common.HexToAddress(targetAddress))
 	if err != nil {
 		return nil, [32]byte{0}, err
@@ -176,9 +285,14 @@ func GetDocument(targetAddress string, bound *BoundedContract) (*DIDDocument, [3
 
 	VM := VerificationMethod{}
 	VM.ID = document.ID + "#controller"
-	VM.BlockchainAccountId = "eip155:" + bound.ChainID.String() + ":" + targetAddress
+	if bound.ChainName == "solana" {
+		VM.BlockchainAccountId = "solana" + ":" + targetAddress
+		VM.MethodType = Ed25519Key
+	} else {
+		VM.BlockchainAccountId = "eip155:" + bound.ChainID.String() + ":" + targetAddress
+		VM.MethodType = Secp256k1Key
+	}
 	VM.Controller = document.ID
-	VM.MethodType = Secp256k1Key
 	document.VerificationMethod = append(document.VerificationMethod, VM)
 	document.Authentication = VM.ID
 	document.AssertionMethod = VM.ID
@@ -206,12 +320,15 @@ func Resolve(did string, options *ResolutionOptions, bound *BoundedContract) (*R
 	}
 
 	targetAddress := ""
+	chainName := ""
 	if len(splitDID) == 3 {
 		targetAddress = splitDID[2]
+		chainName = "ethereum"
 	} else {
 		targetAddress = splitDID[3]
+		chainName = splitDID[2]
 	}
-	generatedDocument, _, err := GetDocument(targetAddress, bound)
+	generatedDocument, _, err := GetDocument(targetAddress, chainName)
 	if err != nil {
 		return &ResolutionMetadata{Error: err.Error()}, nil, nil
 	}

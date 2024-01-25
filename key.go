@@ -2,6 +2,7 @@ package did
 
 import (
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -145,6 +146,31 @@ func CreateEIP712Signature(privKey *ecdsa.PrivateKey, typedDataHash common.Hash)
 	}
 
 	return hex.EncodeToString(signature), nil
+}
+
+func VerifyEd25519JWSSignature(signature string, pubKey ed25519.PublicKey, message []byte) (bool, error) {
+
+	partedSig := strings.Split(signature, ".")
+	if len(partedSig) != 3 {
+		return false, ErrInValidSignature
+	}
+
+	sig, err := base64.RawURLEncoding.DecodeString(partedSig[2])
+	if err != nil {
+		return false, ErrInValidSignature
+	}
+
+	return ed25519.Verify(pubKey, message, sig), nil
+}
+
+func CreateEd25519JWSSignature(privKey *ed25519.PrivateKey, message []byte) (string, error) {
+	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"EdDSA","b64":false,"crit":["b64"]}`))
+	sig := ed25519.Sign(*privKey, message)
+
+	encodedSig := base64.RawURLEncoding.EncodeToString(sig)
+	compactserialized := header + "." + "." + encodedSig
+
+	return compactserialized, nil
 }
 
 // Function to compare two Ethereum addresses by checking the identifiers and chainIDs

@@ -36,7 +36,7 @@ func TestConvertTimesToDBFormat(t *testing.T) {
 func TestCreateVC(t *testing.T) {
 	issuerKey, _ := crypto.HexToECDSA("075a9987addcd8c2e709195533869b8b69eff2d61e345210b687bbc7ab8b66bb")
 	presenterKey, _ := crypto.HexToECDSA("c62ee45278d87e5bdd8b7e895e9de16bfd1a3cbc9ddb7462bf9b30fc7502a3e8")
-	bound, err := GetRegistryInstance(GoerliNetwork)
+	bound, err := GetRegistryInstance(ChainName2ContractConfigMap[GoerliChainName])
 	assert.NoError(t, err)
 	doc := CreateDID(issuerKey, *bound)
 

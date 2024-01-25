@@ -3,14 +3,20 @@ module github.com/MetaBloxIO/did-sdk-go/v2
 go 1.18
 
 require (
+	github.com/blocto/solana-go-sdk v1.26.0
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/mitchellh/mapstructure v1.5.0
 )
 
 require (
+	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
+	github.com/mr-tron/base58 v1.2.0 // indirect
+	github.com/multiformats/go-base32 v0.0.3 // indirect
+	github.com/multiformats/go-base36 v0.1.0 // indirect
+	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rjeczalik/notify v0.9.1 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect

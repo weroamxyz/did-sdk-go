@@ -3,6 +3,8 @@ package did
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -11,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+	"github.com/multiformats/go-multibase"
 
 	"github.com/gibson042/canonicaljson-go"
 )
@@ -39,12 +42,25 @@ func CreateVPEIP712Proof(vm string, nonce string) EIP712VPProof {
 	return *presentationProof
 }
 
+func CreateVPEd25519Proof(vm string, nonce string) Ed25519VPProof {
+	loc, _ := time.LoadLocation("UTC")
+	presentationProof := CreateEd25519VPProof()
+	presentationProof.Type = Ed25519Sig
+	presentationProof.VerificationMethod = vm
+	presentationProof.JWSSignature = ""
+	presentationProof.PublicKeyMultibase = ""
+	presentationProof.Created = time.Now().In(loc).Format(time.RFC3339)
+	presentationProof.ProofPurpose = "Authentication"
+	presentationProof.Nonce = nonce
+	return *presentationProof
+}
+
 // create a presentation using 1 or more credentials. Currently unused
-func CreatePresentation(credentials []VerifiableCredential, holderDocument DIDDocument, holderPrivKey *ecdsa.PrivateKey, nonce string, proofType string, bound *BoundedContract) (*VerifiablePresentation, error) {
+func CreatePresentation(credentials []VerifiableCredential, holderDocument DIDDocument, holderPrivKey interface{}, nonce string, proofType string) (*VerifiablePresentation, error) {
 	var presentation *VerifiablePresentation
 	var presentationProof interface{}
 	var context []string
-	presentationType := []string{"VerifiablePresentation"}
+	presentationType := []string{TypePresentation}
 	switch proofType {
 	case Secp256k1Sig:
 		presentationProof = CreateVPSecp256k1Proof(holderDocument.Authentication, nonce)
@@ -54,8 +70,21 @@ func CreatePresentation(credentials []VerifiableCredential, holderDocument DIDDo
 		presentationProof = CreateVPEIP712Proof(holderDocument.Authentication, nonce)
 		context = []string{ContextEIP712, ContextCredential}
 		presentation = NewPresentation(context, presentationType, credentials, holderDocument.ID, presentationProof)
+	case Ed25519Sig:
+		presentationProof = CreateVPEd25519Proof(holderDocument.Authentication, nonce)
+		context = []string{ContextEd25519, ContextCredential}
+		presentation = NewPresentation(context, presentationType, credentials, holderDocument.ID, presentationProof)
 	default:
 		return nil, ErrUnknownProofType
+	}
+
+	chainName, err := GetChainNameFromDID(holderDocument.ID)
+	if err != nil {
+		return nil, err
+	}
+	bound, err := GetBoundedContract(chainName)
+	if err != nil {
+		return nil, err
 	}
 
 	//Create the proof's signature using a stringified version of the VP and the holder's private key.
@@ -66,27 +95,55 @@ func CreatePresentation(credentials []VerifiableCredential, holderDocument DIDDo
 	//This proof is only for the presentation itself; each credential also needs to be individually verified
 	switch proof := presentation.Proof.(type) {
 	case Secp256k1VPProof:
+		ecKey, ok := holderPrivKey.(*ecdsa.PrivateKey)
+		if !ok {
+			return nil, ErrWrongProofType
+		}
 		vpBytes, err := ConvertVPToJWTPayload(*presentation)
 		if err != nil {
-			return presentation, err
+			return nil, err
 		}
 		hashedVP := crypto.Keccak256(vpBytes)
-		signatureData, err := CreateJWSSignature(holderPrivKey, hashedVP[:])
+		signatureData, err := CreateJWSSignature(ecKey, hashedVP[:])
 		if err != nil {
 			return nil, err
 		}
 		proof.JWSSignature = signatureData
 		presentation.Proof = proof
 	case EIP712VPProof:
-		typedHash, err := GenerateEIP712VPTypedDataHash(presentation, *bound)
+		ecKey, ok := holderPrivKey.(*ecdsa.PrivateKey)
+		if !ok {
+			return nil, ErrWrongProofType
+		}
+		typedHash, err := GenerateEIP712VPTypedDataHash(presentation, bound)
 		if err != nil {
 			return nil, err
 		}
-		signatureData, err := CreateEIP712Signature(holderPrivKey, typedHash)
+		signatureData, err := CreateEIP712Signature(ecKey, typedHash)
 		if err != nil {
 			return nil, err
 		}
 		proof.ProofValue = signatureData
+		presentation.Proof = proof
+	case Ed25519VPProof:
+		edKey, ok := holderPrivKey.(*ed25519.PrivateKey)
+		if !ok {
+			return nil, ErrWrongProofType
+		}
+		vpBytes, err := ConvertVPToJWTPayload(*presentation)
+		if err != nil {
+			return nil, err
+		}
+		hashedVP := sha256.Sum256(vpBytes)
+		signatureData, err := CreateEd25519JWSSignature(edKey, hashedVP[:])
+		if err != nil {
+			return nil, err
+		}
+		proof.JWSSignature = signatureData
+		proof.PublicKeyMultibase, err = multibase.Encode(multibase.Base58BTC, edKey.Public().(ed25519.PublicKey))
+		if err != nil {
+			return nil, err
+		}
 		presentation.Proof = proof
 	default:
 		return nil, ErrUnknownProofType
@@ -97,7 +154,16 @@ func CreatePresentation(credentials []VerifiableCredential, holderDocument DIDDo
 
 // Verify a presentation. Need to first verify the presentation's proof using the holder's DID document.
 // Afterwards, need to verify the proof of each credential included inside the presentation
-func VerifyVP(presentation *VerifiablePresentation, bound *BoundedContract) (bool, error) {
+func VerifyVP(presentation *VerifiablePresentation) (bool, error) {
+
+	chainName, err := GetChainNameFromDID(presentation.Holder)
+	if err != nil {
+		return false, err
+	}
+	bound, err := GetBoundedContract(chainName)
+	if err != nil {
+		return false, err
+	}
 
 	resolutionMeta, holderDoc, _ := Resolve(presentation.Holder, CreateResolutionOptions(), bound)
 	if resolutionMeta.Error != "" {
@@ -105,7 +171,6 @@ func VerifyVP(presentation *VerifiablePresentation, bound *BoundedContract) (boo
 	}
 
 	var success bool
-	var err error
 	switch proof := presentation.Proof.(type) {
 	case Secp256k1VPProof:
 		//get verification method from the issuer DID document which is listed in the vc proof
@@ -133,6 +198,19 @@ func VerifyVP(presentation *VerifiablePresentation, bound *BoundedContract) (boo
 		if err != nil {
 			return false, err
 		}
+	case Ed25519VPProof:
+		//get verification method from the issuer DID document which is listed in the vc proof
+		targetVM, err := holderDoc.RetrieveVerificationMethod(proof.VerificationMethod)
+		if err != nil {
+			return false, err
+		}
+		if targetVM.MethodType != Ed25519Key { //vm must be the same type as the proof
+			return false, ErrEd25519WrongVMType
+		}
+		success, err = VerifyEd25519VP(presentation)
+		if err != nil {
+			return false, err
+		}
 	default:
 		return false, ErrUnknownProofType
 	}
@@ -141,7 +219,7 @@ func VerifyVP(presentation *VerifiablePresentation, bound *BoundedContract) (boo
 	}
 
 	for _, credential := range presentation.VerifiableCredential { //verify each individual credential stored in the presentation
-		success, err = VerifyVC(&credential, bound)
+		success, err = VerifyVC(&credential)
 		if !success {
 			return false, err
 		}
@@ -179,7 +257,7 @@ func VerifySecp256k1VP(presentation *VerifiablePresentation, expectedBlkID strin
 
 func VerifyEIP712VP(presentation *VerifiablePresentation, bound *BoundedContract, expectedBlkID string) (bool, error) {
 
-	EIP712DataHash, err := GenerateEIP712VPTypedDataHash(presentation, *bound)
+	EIP712DataHash, err := GenerateEIP712VPTypedDataHash(presentation, bound)
 	if err != nil {
 		return false, err
 	}
@@ -190,6 +268,35 @@ func VerifyEIP712VP(presentation *VerifiablePresentation, bound *BoundedContract
 	}
 
 	return VerifyEIP712Signature(EIP712Proof.ProofValue, expectedBlkID, EIP712DataHash.Bytes())
+}
+
+func VerifyEd25519VP(presentation *VerifiablePresentation) (bool, error) {
+	copiedVP := *presentation
+	//have to make sure to remove the signature from the copy, as the original did not have a signature at the time the signature was generated
+	proof, ok := copiedVP.Proof.(Ed25519VPProof)
+	if !ok {
+		return false, ErrEd25519WrongVMType
+	}
+	jwsSignature := proof.JWSSignature
+	proof.JWSSignature = ""
+	copiedVP.Proof = proof
+
+	_, pubKey, err := multibase.Decode(proof.PublicKeyMultibase)
+	if err != nil {
+		return false, err
+	}
+
+	vpBytes, err := ConvertVPToJWTPayload(copiedVP)
+	if err != nil {
+		return false, err
+	}
+	hashedVP := sha256.Sum256(vpBytes)
+
+	result, err := VerifyEd25519JWSSignature(jwsSignature, pubKey, hashedVP[:])
+	if err != nil {
+		return false, err
+	}
+	return result, nil
 }
 
 // convert presentation to bytes so it can be hashed
@@ -232,7 +339,13 @@ func ConvertVPToJWTPayload(vp VerifiablePresentation) (payloadByte []byte, err e
 			return payloadByte, err
 		}
 		payload.Iat = issuanceTime.Unix()
-
+	case Ed25519VPProof:
+		payload.Nonce = proof.Nonce
+		issuanceTime, err := time.Parse(time.RFC3339, proof.Created) // We use the Proof Created time as the JWT Issued At time
+		if err != nil {
+			return payloadByte, err
+		}
+		payload.Iat = issuanceTime.Unix()
 	default:
 		return payloadByte, ErrUnknownProofType
 	}
@@ -249,7 +362,7 @@ func ConvertVPToJWTPayload(vp VerifiablePresentation) (payloadByte []byte, err e
 	return payloadByte, nil
 }
 
-func GenerateEIP712VPTypedDataHash(vp *VerifiablePresentation, bound BoundedContract) (common.Hash, error) {
+func GenerateEIP712VPTypedDataHash(vp *VerifiablePresentation, bound *BoundedContract) (common.Hash, error) {
 
 	domain := apitypes.TypedDataDomain{
 		Name:              EIP712DomainName,

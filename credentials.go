@@ -3,12 +3,15 @@ package did
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"os"
 	"time"
+
+	"crypto/ed25519"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,17 +20,22 @@ import (
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/gibson042/canonicaljson-go"
 	"github.com/mitchellh/mapstructure"
+	"github.com/multiformats/go-multibase"
 )
 
-var issuerDID string
-var issuerPrivateKey *ecdsa.PrivateKey
+var issuerDIDs []string
+var issuerECPrivateKey *ecdsa.PrivateKey
+var issuerEDPrivateKey *ed25519.PrivateKey
 var issuerChainId *big.Int
 
-func GetIssuerDid() string {
-	return issuerDID
+func GetIssuerDids() []string {
+	return issuerDIDs
 }
-func GetIssuerPrivateKey() *ecdsa.PrivateKey {
-	return issuerPrivateKey
+func GetIssuerECPrivateKey() *ecdsa.PrivateKey {
+	return issuerECPrivateKey
+}
+func GetIssuerEDPrivateKey() *ed25519.PrivateKey {
+	return issuerEDPrivateKey
 }
 func GetIssuerChainId() *big.Int {
 	return issuerChainId
@@ -38,20 +46,43 @@ func GetIssuerChainId() *big.Int {
 const BaseIDString = "https://metablox.io/credentials/"
 
 type Config struct {
-	Passphrase string   `json:"passphrase"`
-	Keystore   string   `json:"keystore"`
-	ChainId    *big.Int `json:"chainId"`
-	ChainName  string   `json:"chainName"`
+	Passphrase string `json:"passphrase"`
+	Keystore   string `json:"keystore"`
+	//ChainId    *big.Int `json:"chainId"`
+	//ChainName  string   `json:"chainName"`
+	ChainList []string `json:"chainList"`
 }
 
 func Init(cfg *Config) error {
 	var err error
-	issuerPrivateKey, err = keystoreToPrivateKey(cfg.Keystore, cfg.Passphrase)
+	issuerECPrivateKey, err = keystoreToPrivateKey(cfg.Keystore, cfg.Passphrase)
 	if err != nil {
 		return err
 	}
-	issuerChainId = cfg.ChainId
-	issuerDID = GenerateDIDString(&issuerPrivateKey.PublicKey, cfg.ChainName)
+	//issuerECPrivateKeyHex := common.Bytes2Hex(crypto.FromECDSA(issuerECPrivateKey))
+	// We uses the EC Key to create a signature that works as a seed for generating the ED Key
+	var edkeySeed [ed25519.SeedSize]byte
+	sig, err := crypto.Sign(crypto.Keccak256([]byte("MetaBloxED25519")), issuerECPrivateKey)
+	if err != nil {
+		return err
+	}
+	edkeySeed = sha256.Sum256(sig)
+	deterministicKey := ed25519.NewKeyFromSeed(edkeySeed[:])
+
+	//newKey :=
+
+	issuerEDPrivateKey = &deterministicKey
+
+	err = initIssuerDIDs(cfg.ChainList)
+	if err != nil {
+		return err
+	}
+
+	err = initBoundedContracts(cfg.ChainList)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -67,6 +98,41 @@ func keystoreToPrivateKey(privateKeyFile, password string) (*ecdsa.PrivateKey, e
 	//privKey := hex.EncodeToString(unlockedKey.PrivateKey.D.Bytes())
 	//addr := crypto.PubkeyToAddress(unlockedKey.PrivateKey.PublicKey)
 	return key.PrivateKey, nil
+}
+
+func initIssuerDIDs(chainList []string) error {
+
+	issuerDIDs = make([]string, len(chainList))
+	for _, chainName := range chainList {
+		_, ok := ChainName2IdMap[chainName]
+		if !ok && chainName != "solana" {
+			return ErrUnknownChainName
+		}
+
+		if chainName == "solana" {
+			solPubKey, _ := issuerEDPrivateKey.Public().(ed25519.PublicKey)
+			issuerDIDs = append(issuerDIDs, GenerateDIDString(&solPubKey, chainName))
+		} else if chainName == "ethereum" {
+			// Append 2 DIDs here, one is with the Chain Name and one without, both means on Ethereum
+			issuerDIDs = append(issuerDIDs, GenerateDIDString(&issuerECPrivateKey.PublicKey, chainName))
+			issuerDIDs = append(issuerDIDs, GenerateDIDString(&issuerECPrivateKey.PublicKey, ""))
+		} else {
+			issuerDIDs = append(issuerDIDs, GenerateDIDString(&issuerECPrivateKey.PublicKey, chainName))
+		}
+
+	}
+	return nil
+}
+
+func CheckIssuer(did string) bool {
+
+	for _, issuerDid := range issuerDIDs {
+		if issuerDid == did {
+			return true
+		}
+	}
+
+	return false
 }
 
 // create a credential proof using the provided verification method string
@@ -85,6 +151,17 @@ func CreateVCEIP712Proof(vm string) EIP712VCProof {
 	vcProof.Type = EIP712Sig
 	vcProof.VerificationMethod = vm
 	vcProof.ProofValue = ""
+	vcProof.Created = time.Now().UTC().Format(time.RFC3339)
+	vcProof.ProofPurpose = PurposeAuth
+	return *vcProof
+}
+
+func CreateVCEd25519Proof(vm string) Ed25519VCProof {
+	vcProof := CreateEd25519VCProof()
+	vcProof.Type = Ed25519Sig
+	vcProof.VerificationMethod = vm
+	vcProof.JWSSignature = ""
+	vcProof.PublicKeyMultibase = ""
 	vcProof.Created = time.Now().UTC().Format(time.RFC3339)
 	vcProof.ProofPurpose = PurposeAuth
 	return *vcProof
@@ -138,6 +215,9 @@ func CreateVC(issuerDocument *DIDDocument, proofType string) (*VerifiableCredent
 	case EIP712Sig:
 		vcProof = CreateVCEIP712Proof(issuerDocument.Authentication)
 		context = []string{ContextEIP712, ContextCredential}
+	case Ed25519Sig:
+		vcProof = CreateVCEd25519Proof(issuerDocument.Authentication)
+		context = []string{ContextEd25519, ContextCredential}
 	default:
 		return nil, ErrUnknownProofType
 	}
@@ -168,9 +248,19 @@ func JsonToVC(jsonVC []byte) (*VerifiableCredential, error) {
 
 // Need to make sure that the stated issuer of the VC actually created it (using the proof alongside the issuer's verification methods),
 // as well as check that the issuer is a trusted source
-func VerifyVC(vc *VerifiableCredential, bound *BoundedContract) (bool, error) {
-	if vc.Issuer != issuerDID { //issuer of VC must be the same issuer stored here
+func VerifyVC(vc *VerifiableCredential) (bool, error) {
+	//issuer of VC must be the same issuer stored
+	if !CheckIssuer(vc.Issuer) {
 		return false, ErrUnknownIssuer
+	}
+
+	issuerChainName, err := GetChainNameFromDID(vc.Issuer)
+	if err != nil {
+		return false, err
+	}
+	bound, err := GetBoundedContract(issuerChainName)
+	if err != nil {
+		return false, err
 	}
 
 	resolutionMeta, issuerDoc, _ := Resolve(vc.Issuer, CreateResolutionOptions(), bound)
@@ -199,6 +289,16 @@ func VerifyVC(vc *VerifiableCredential, bound *BoundedContract) (bool, error) {
 			return false, ErrSecp256k1WrongVMType
 		}
 		return VerifyEIP712VC(vc, bound, targetVM.BlockchainAccountId)
+	case Ed25519VCProof:
+		//get verification method from the issuer DID document which is listed in the vc proof
+		targetVM, err := issuerDoc.RetrieveVerificationMethod(proof.VerificationMethod)
+		if err != nil {
+			return false, err
+		}
+		if targetVM.MethodType != Ed25519Key { //vm must be the same type as the proof
+			return false, ErrEd25519WrongVMType
+		}
+		return VerifyEd25519VC(vc)
 	default:
 		return false, ErrUnknownProofType
 	}
@@ -245,6 +345,36 @@ func VerifyEIP712VC(credential *VerifiableCredential, bound *BoundedContract, ex
 	}
 
 	return VerifyEIP712Signature(EIP712Proof.ProofValue, expectedBlkID, EIP712DataHash.Bytes())
+}
+
+func VerifyEd25519VC(vc *VerifiableCredential) (bool, error) {
+	copiedVC := *vc
+	//have to make sure to remove the signature from the copy, as the original did not have a signature at the time the signature was generated
+	proof, ok := copiedVC.Proof.(Ed25519VCProof)
+	if !ok {
+		return false, ErrWrongProofType
+	}
+	jwsSignature := proof.JWSSignature
+	proof.JWSSignature = ""
+	copiedVC.Proof = proof
+
+	_, pubKey, err := multibase.Decode(proof.PublicKeyMultibase)
+	if err != nil {
+		return false, err
+	}
+
+	vcBytes, err := ConvertVCToJWTPayload(copiedVC)
+	if err != nil {
+		return false, err
+	}
+
+	hashedVC := sha256.Sum256(vcBytes)
+
+	result, err := VerifyEd25519JWSSignature(jwsSignature, pubKey, hashedVC[:])
+	if err != nil {
+		return false, err
+	}
+	return result, nil
 }
 
 // convert credential to bytes so it can be hashed
