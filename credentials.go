@@ -135,6 +135,27 @@ func CheckIssuer(did string) bool {
 	return false
 }
 
+func AddIssuer(did string) error {
+	_, valid := PrepareDID(did)
+	if !valid {
+		return ErrInvalidDID
+	}
+	issuerDIDs = append(issuerDIDs, did)
+
+	return nil
+}
+
+func RemoveIssuer(did string) error {
+	for i, issuerDid := range issuerDIDs {
+		if issuerDid == did {
+			issuerDIDs = append(issuerDIDs[:i], issuerDIDs[i+1:]...)
+			return nil
+		}
+	}
+
+	return ErrUnknownIssuer
+}
+
 // create a credential proof using the provided verification method string
 func CreateVCSecp256k1Proof(vm string) Secp256k1VCProof {
 	vcProof := CreateSecp256k1VCProof()
@@ -368,9 +389,10 @@ func VerifyEd25519VC(vc *VerifiableCredential) (bool, error) {
 		return false, err
 	}
 
-	hashedVC := sha256.Sum256(vcBytes)
+	//ED25519's sign() function already hashes the message, so we don't need to hash it again
+	//hashedVC := sha256.Sum256(vcBytes)
 
-	result, err := VerifyEd25519JWSSignature(jwsSignature, pubKey, hashedVC[:])
+	result, err := VerifyEd25519JWSSignature(jwsSignature, pubKey, vcBytes)
 	if err != nil {
 		return false, err
 	}
