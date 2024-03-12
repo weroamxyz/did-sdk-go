@@ -31,6 +31,38 @@ var issuerChainId *big.Int
 func GetIssuerDids() []string {
 	return issuerDIDs
 }
+func GetIssuerDidFromChainName(targetChainName string) (string, error) {
+	issuerDIDs := GetIssuerDids()
+	for _, did := range issuerDIDs {
+		didChainName, err := GetChainNameFromDID(did)
+		if err != nil {
+			continue
+		}
+		if didChainName == targetChainName {
+			return did, nil
+		}
+	}
+
+	return "", ErrUnknownChainName
+}
+func GetIssuerDidFromChainID(targetChainID int) (string, error) {
+	issuerDIDs := GetIssuerDids()
+	targetChainName, ok := ChainId2NameMap[targetChainID]
+	if !ok {
+		return "", ErrUnknownChainID
+	}
+	for _, did := range issuerDIDs {
+		didChainName, err := GetChainNameFromDID(did)
+		if err != nil {
+			continue
+		}
+		if didChainName == targetChainName {
+			return did, nil
+		}
+	}
+
+	return "", ErrUnknownChainID
+}
 func GetIssuerECPrivateKey() *ecdsa.PrivateKey {
 	return issuerECPrivateKey
 }
@@ -102,7 +134,7 @@ func keystoreToPrivateKey(privateKeyFile, password string) (*ecdsa.PrivateKey, e
 
 func initIssuerDIDs(chainList []string) error {
 
-	issuerDIDs = make([]string, len(chainList))
+	issuerDIDs = make([]string, 0)
 	for _, chainName := range chainList {
 		_, ok := ChainName2IdMap[chainName]
 		if !ok && chainName != "solana" {
