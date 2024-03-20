@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/sha512"
 	"errors"
 	"fmt"
 	"time"
@@ -133,9 +134,8 @@ func CreatePresentation(credentials []VerifiableCredential, holderDocument DIDDo
 		if err != nil {
 			return nil, err
 		}
-		// ED25519's sign() function already hashes the message, so we don't need to hash it again
-		//hashedVP := sha256.Sum256(vpBytes)
-		signatureData, err := CreateEd25519JWSSignature(edKey, vpBytes)
+		hashedVP := sha512.Sum512(vpBytes)
+		signatureData, err := CreateEd25519JWSSignature(edKey, hashedVP[:])
 		if err != nil {
 			return nil, err
 		}
@@ -290,10 +290,8 @@ func VerifyEd25519VP(presentation *VerifiablePresentation) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	// ED25519's sign() function already hashes the message, so we don't need to hash it again
-	//hashedVP := sha256.Sum256(vpBytes)
-
-	result, err := VerifyEd25519JWSSignature(jwsSignature, pubKey, vpBytes[:])
+	hashedVP := sha512.Sum512(vpBytes)
+	result, err := VerifyEd25519JWSSignature(jwsSignature, pubKey, hashedVP[:])
 	if err != nil {
 		return false, err
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -420,11 +421,8 @@ func VerifyEd25519VC(vc *VerifiableCredential) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
-	//ED25519's sign() function already hashes the message, so we don't need to hash it again
-	//hashedVC := sha256.Sum256(vcBytes)
-
-	result, err := VerifyEd25519JWSSignature(jwsSignature, pubKey, vcBytes)
+	hashedVC := sha512.Sum512(vcBytes)
+	result, err := VerifyEd25519JWSSignature(jwsSignature, pubKey, hashedVC[:])
 	if err != nil {
 		return false, err
 	}
