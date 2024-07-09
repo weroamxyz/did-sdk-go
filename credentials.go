@@ -73,6 +73,12 @@ func GetIssuerEDPrivateKey() *ed25519.PrivateKey {
 func GetIssuerChainId() *big.Int {
 	return issuerChainId
 }
+func SetIssuerECPrivateKey(privateKey *ecdsa.PrivateKey) {
+	issuerECPrivateKey = privateKey
+}
+func SetIssuerEDPrivateKey(privateKey *ed25519.PrivateKey) {
+	issuerEDPrivateKey = privateKey
+}
 
 // All credential ids use a format of this value plus a number. ex. 'http://metablox.com/credentials/5'
 // Only the number is stored in the db as the ID; the full string is only used in formal credentials
@@ -106,12 +112,12 @@ func Init(cfg *Config) error {
 
 	issuerEDPrivateKey = &deterministicKey
 
-	err = initIssuerDIDs(cfg.ChainList)
+	err = InitIssuerDIDs(cfg.ChainList)
 	if err != nil {
 		return err
 	}
 
-	err = initBoundedContracts(cfg.ChainList)
+	err = InitBoundedContracts(cfg.ChainList)
 	if err != nil {
 		return err
 	}
@@ -133,7 +139,7 @@ func keystoreToPrivateKey(privateKeyFile, password string) (*ecdsa.PrivateKey, e
 	return key.PrivateKey, nil
 }
 
-func initIssuerDIDs(chainList []string) error {
+func InitIssuerDIDs(chainList []string) error {
 
 	issuerDIDs = make([]string, 0)
 	for _, chainName := range chainList {

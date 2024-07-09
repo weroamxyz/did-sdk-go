@@ -25,7 +25,7 @@ import (
 
 var boundedContracts map[string]*BoundedContract
 
-func initBoundedContracts(chainList []string) error {
+func InitBoundedContracts(chainList []string) error {
 
 	boundedContracts = make(map[string]*BoundedContract)
 	for _, chainName := range chainList {
