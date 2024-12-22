@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MetaBloxIO/did-sdk-go/v2/registry"
 	"github.com/mr-tron/base58"
+	"github.com/weroamxyz/did-sdk-go/v2/registry"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"

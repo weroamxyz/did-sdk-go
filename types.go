@@ -4,10 +4,10 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 
-	"github.com/MetaBloxIO/did-sdk-go/v2/registry"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/weroamxyz/did-sdk-go/v2/registry"
 )
 
 type ContractConfig struct {
