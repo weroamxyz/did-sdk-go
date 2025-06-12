@@ -266,10 +266,10 @@ func GetDocument(targetAddress string, chainName string) (*DIDDocument, [32]byte
 		return nil, [32]byte{0}, err
 	}
 
-	txBlk, err := bound.Instance.Changed(nil, common.HexToAddress(targetAddress))
-	if err != nil {
-		return nil, [32]byte{0}, err
-	}
+	//txBlk, err := bound.Instance.Changed(nil, common.HexToAddress(targetAddress))
+	//if err != nil {
+	//	return nil, [32]byte{0}, err
+	//}
 
 	document := new(DIDDocument)
 	loc, _ := time.LoadLocation("UTC")
@@ -304,9 +304,9 @@ func GetDocument(targetAddress string, chainName string) (*DIDDocument, [32]byte
 		}
 	*/
 
-	if txBlk.Int64() != big.NewInt(0).Int64() {
-		// We should check on the Event to rebuild the Doc here
-	}
+	//if txBlk.Int64() != big.NewInt(0).Int64() {
+	//	// We should check on the Event to rebuild the Doc here
+	//}
 	placeholderHash := [32]byte{94, 241, 27, 134, 190, 223, 112, 91, 189, 49, 221, 31, 228, 35, 189, 213, 251, 60, 60, 210, 162, 45, 151, 3, 31, 78, 41, 239, 41, 75, 198, 139}
 	return document, placeholderHash, nil
 }
