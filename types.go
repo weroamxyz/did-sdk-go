@@ -2,12 +2,12 @@ package did
 
 import (
 	"crypto/ecdsa"
+	"github.com/weroamxyz/did-sdk-go/v2/registry"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/weroamxyz/did-sdk-go/v2/registry"
 )
 
 type ContractConfig struct {
