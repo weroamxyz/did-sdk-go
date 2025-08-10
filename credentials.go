@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	"crypto/ed25519"
@@ -134,8 +135,6 @@ func keystoreToPrivateKey(privateKeyFile, password string) (*ecdsa.PrivateKey, e
 	if err != nil {
 		return nil, err
 	}
-	//privKey := hex.EncodeToString(unlockedKey.PrivateKey.D.Bytes())
-	//addr := crypto.PubkeyToAddress(unlockedKey.PrivateKey.PublicKey)
 	return key.PrivateKey, nil
 }
 
@@ -163,8 +162,19 @@ func InitIssuerDIDs(chainList []string) error {
 	return nil
 }
 
-func CheckIssuer(did string) bool {
+func parseAddress(s string) (string, string) {
+	idx := strings.LastIndex(s, ":")
+	if idx == -1 {
+		return s, "" // 没有冒号，全部为前部分，后部分空
+	}
+	return s[:idx], s[idx+1:]
+}
 
+func CheckIssuer(did string) bool {
+	prefix, suffix := parseAddress(did)
+	if common.IsHexAddress(suffix) {
+		did = prefix + ":" + strings.ToLower(suffix)
+	}
 	for _, issuerDid := range issuerDIDs {
 		if issuerDid == did {
 			return true

@@ -71,7 +71,7 @@ func VerifyJWSSignature(signature string, expectedFullBlkID string, message []by
 	if (len(partedExpectedBlkID) != 3 && len(partedExpectedBlkID) != 2) || partedExpectedBlkID[0] != "eip155" {
 		return false, ErrInvalidBlockID
 	}
-	expectedAddress := partedExpectedBlkID[len(partedExpectedBlkID)-1]
+	expectedAddress := common.HexToAddress(partedExpectedBlkID[len(partedExpectedBlkID)-1])
 
 	partedSig := strings.Split(signature, ".")
 	if len(partedSig) != 3 {
@@ -97,7 +97,7 @@ func VerifyJWSSignature(signature string, expectedFullBlkID string, message []by
 		return false, ErrInValidSignature
 	}
 
-	recoveredAddress := crypto.PubkeyToAddress(*recoveredPubKey).Hex()
+	recoveredAddress := crypto.PubkeyToAddress(*recoveredPubKey)
 	return recoveredAddress == expectedAddress, nil
 }
 
@@ -109,7 +109,7 @@ func VerifyEIP712Signature(signature string, expectedFullBlkID string, message [
 		return false, ErrInvalidBlockID
 	}
 
-	expectedAddress := partedExpectedBlkID[len(partedExpectedBlkID)-1]
+	expectedAddress := common.HexToAddress(partedExpectedBlkID[len(partedExpectedBlkID)-1])
 
 	// Parse the signature
 	sig, err := hex.DecodeString(signature)
@@ -132,7 +132,7 @@ func VerifyEIP712Signature(signature string, expectedFullBlkID string, message [
 	}
 
 	// Compute the address
-	recoveredAddress := crypto.PubkeyToAddress(*recoveredPubKey).Hex()
+	recoveredAddress := crypto.PubkeyToAddress(*recoveredPubKey)
 
 	// Compare the addresses
 	return recoveredAddress == expectedAddress, nil

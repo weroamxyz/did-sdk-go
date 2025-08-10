@@ -110,9 +110,9 @@ func generateEthDIDString(pubKey *ecdsa.PublicKey, network string) string {
 
 	// No network/chainID provided, default on Ethereum Mainnet
 	if network == "" {
-		return "did:metablox:" + ethAddress.Hex()
+		return "did:metablox:" + strings.ToLower(ethAddress.Hex())
 	} else {
-		return "did:metablox:" + network + ":" + ethAddress.Hex()
+		return "did:metablox:" + network + ":" + strings.ToLower(ethAddress.Hex())
 	}
 
 }
@@ -148,7 +148,7 @@ func CreateDID(publicKey interface{}, bound BoundedContract) *DIDDocument {
 	} else {
 		ecPubkey := publicKey.(*ecdsa.PublicKey)
 		address = crypto.PubkeyToAddress(*ecPubkey).Hex()
-		VM.BlockchainAccountId = "eip155:" + bound.ChainID.String() + ":" + address
+		VM.BlockchainAccountId = "eip155:" + bound.ChainID.String() + ":" + strings.ToLower(address)
 	}
 
 	VM.ID = document.ID + "#controller"
