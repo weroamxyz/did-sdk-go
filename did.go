@@ -110,9 +110,9 @@ func generateEthDIDString(pubKey *ecdsa.PublicKey, network string) string {
 
 	// No network/chainID provided, default on Ethereum Mainnet
 	if network == "" {
-		return "did:metablox:" + strings.ToLower(ethAddress.Hex())
+		return "did:metablox:" + ethAddress.Hex()
 	} else {
-		return "did:metablox:" + network + ":" + strings.ToLower(ethAddress.Hex())
+		return "did:metablox:" + network + ":" + ethAddress.Hex()
 	}
 
 }
