@@ -165,18 +165,21 @@ func InitIssuerDIDs(chainList []string) error {
 func parseAddress(s string) (string, string) {
 	idx := strings.LastIndex(s, ":")
 	if idx == -1 {
-		return s, "" // 没有冒号，全部为前部分，后部分空
+		return s, ""
 	}
 	return s[:idx], s[idx+1:]
 }
 
 func CheckIssuer(did string) bool {
-	prefix, suffix := parseAddress(did)
-	if common.IsHexAddress(suffix) {
-		did = prefix + ":" + strings.ToLower(suffix)
-	}
 	for _, issuerDid := range issuerDIDs {
-		if issuerDid == did {
+		prefix, suffix := parseAddress(did)
+		if common.IsHexAddress(suffix) {
+			did = prefix + ":" + strings.ToLower(suffix)
+			_, issuerAddress := parseAddress(issuerDid)
+			if common.HexToAddress(issuerAddress) == common.HexToAddress(suffix) {
+				return true
+			}
+		} else if issuerDid == did {
 			return true
 		}
 	}
