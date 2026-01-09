@@ -15,7 +15,7 @@ const (
 var ChainName2ContractConfigMap = map[string]ContractConfig{
 	GoerliChainName:  {RpcUrl: "https://ethereum-goerli.publicnode.com", ContractAddr: "0x28e038d24Ebcf16BC386141224535650A667146e", ChainName: "goerli"},
 	HarmonyChainName: {RpcUrl: "https://api.harmony.one", ContractAddr: "0x275D3fC4C492a8d743Fe9AAB42266fEf92c89995", ChainName: "harmony"},
-	SolanaChainName:  {RpcUrl: "https://devnet.neonevm.org", ContractAddr: "0x58C2AE9AE47a07A3D9928898BA32C00E4FE599Cc", ChainName: "solana"},
+	SolanaChainName:  {RpcUrl: "https://245022926.rpc.thirdweb.com", ContractAddr: "0x58C2AE9AE47a07A3D9928898BA32C00E4FE599Cc", ChainName: "solana"},
 }
 
 var ChainId2NameMap = map[int]string{
