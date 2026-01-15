@@ -5,59 +5,213 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/mr-tron/base58"
-	"github.com/weroamxyz/did-sdk-go/v2/registry"
-
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/mr-tron/base58"
+	"github.com/weroamxyz/did-sdk-go/v2/registry"
 )
 
-var boundedContracts map[string]*BoundedContract
+// ==================== Key/Signature Functions ====================
 
-func InitBoundedContracts(chainList []string) error {
+// CreateJWSSignature uses a private key and a message to create a JWS format signature
+func CreateJWSSignature(privKey *ecdsa.PrivateKey, message []byte) (string, error) {
+	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"ES256K-R","b64":false,"crit":["b64"]}`))
 
-	boundedContracts = make(map[string]*BoundedContract)
-	for _, chainName := range chainList {
-		_, ok := ChainName2IdMap[chainName]
-		if !ok {
-			return ErrUnknownChainName
-		}
-
-		contractConfig, ok := ChainName2ContractConfigMap[chainName]
-		if !ok {
-			return ErrUnknownChainName
-		}
-
-		boundedContract, err := GetRegistryInstance(contractConfig)
-		if err != nil {
-			return err
-		}
-
-		boundedContracts[chainName] = boundedContract
+	// Replace the Signature with the SECP256k1r signature
+	sig, err := crypto.Sign(message[:], privKey)
+	if err != nil {
+		return "", err
 	}
 
-	return nil
+	// Manually calaulate the V byte by adding 27 to the recovery ID
+	sig[64] += 27
+
+	encodedSig := base64.RawURLEncoding.EncodeToString(sig)
+	compactserialized := header + "." + "." + encodedSig
+
+	return compactserialized, nil
 }
 
-func GetBoundedContract(chainName string) (*BoundedContract, error) {
+// VerifyJWSSignature verifies a JWS format signature using the matching public key and the original message
+func VerifyJWSSignature(signature string, expectedFullBlkID string, message []byte) (bool, error) {
+	partedExpectedBlkID := strings.Split(expectedFullBlkID, ":")
+	if (len(partedExpectedBlkID) != 3 && len(partedExpectedBlkID) != 2) || partedExpectedBlkID[0] != "eip155" {
+		return false, ErrInvalidBlockID
+	}
+	expectedAddress := common.HexToAddress(partedExpectedBlkID[len(partedExpectedBlkID)-1])
 
-	boundedContract, ok := boundedContracts[chainName]
-	if !ok {
-		return nil, ErrUnknownChainName
+	partedSig := strings.Split(signature, ".")
+	if len(partedSig) != 3 {
+		return false, ErrInValidSignature
 	}
 
-	return boundedContract, nil
+	sig, err := base64.RawURLEncoding.DecodeString(partedSig[2])
+	if err != nil {
+		return false, ErrInValidSignature
+	}
+
+	// Manually calaulate the Recovery ID by subtracting 27 from the V byte
+	if len(sig) != 65 {
+		return false, ErrInValidSignature
+	}
+
+	if sig[64] != 0x00 && sig[64] != 0x01 {
+		sig[64] -= 27
+	}
+
+	recoveredPubKey, err := crypto.SigToPub(message[:], sig)
+	if err != nil {
+		return false, ErrInValidSignature
+	}
+
+	recoveredAddress := crypto.PubkeyToAddress(*recoveredPubKey)
+	return recoveredAddress == expectedAddress, nil
+}
+
+// VerifyEIP712Signature verifies an Ethereum EIP-712 signature
+func VerifyEIP712Signature(signature string, expectedFullBlkID string, message []byte) (bool, error) {
+
+	partedExpectedBlkID := strings.Split(expectedFullBlkID, ":")
+	if (len(partedExpectedBlkID) != 3 && len(partedExpectedBlkID) != 2) || partedExpectedBlkID[0] != "eip155" {
+		return false, ErrInvalidBlockID
+	}
+
+	expectedAddress := common.HexToAddress(partedExpectedBlkID[len(partedExpectedBlkID)-1])
+
+	// Parse the signature
+	sig, err := hex.DecodeString(signature)
+	if err != nil {
+		return false, err
+	}
+	if len(sig) != 65 {
+		return false, errors.New("invalid signature length")
+	}
+
+	// Recover the public key
+	recoveredPubKey, err := crypto.SigToPub(message, sig)
+	if err != nil {
+		return false, err
+	}
+
+	// Compute the address
+	recoveredAddress := crypto.PubkeyToAddress(*recoveredPubKey)
+
+	// Compare the addresses
+	return recoveredAddress == expectedAddress, nil
+}
+
+// CreateEIP712Signature creates an EIP712 signature
+func CreateEIP712Signature(privKey *ecdsa.PrivateKey, typedDataHash common.Hash) (string, error) {
+
+	signature, err := crypto.Sign(typedDataHash.Bytes(), privKey)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(signature), nil
+}
+
+// VerifyEd25519JWSSignature verifies an Ed25519 JWS signature
+func VerifyEd25519JWSSignature(signature string, pubKey ed25519.PublicKey, message []byte) (bool, error) {
+
+	partedSig := strings.Split(signature, ".")
+	if len(partedSig) != 3 {
+		return false, ErrInValidSignature
+	}
+
+	sig, err := base64.RawURLEncoding.DecodeString(partedSig[2])
+	if err != nil {
+		return false, ErrInValidSignature
+	}
+
+	return ed25519.Verify(pubKey, message, sig), nil
+}
+
+// CreateEd25519JWSSignature creates an Ed25519 JWS signature
+func CreateEd25519JWSSignature(privKey *ed25519.PrivateKey, message []byte) (string, error) {
+	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"EdDSA","b64":false,"crit":["b64"]}`))
+	sig := ed25519.Sign(*privKey, message)
+
+	encodedSig := base64.RawURLEncoding.EncodeToString(sig)
+	compactserialized := header + "." + "." + encodedSig
+
+	return compactserialized, nil
+}
+
+// CompareAddresses compares two Ethereum addresses by checking the identifiers and chainIDs
+func CompareAddresses(address1 string, address2 string) bool {
+	// Parse the addresses
+	parsedAddress1 := strings.Split(address1, ":")
+	parsedAddress2 := strings.Split(address2, ":")
+	if len(parsedAddress1) == len(parsedAddress2) {
+		return address1 == address2
+	}
+
+	// Check the identifiers
+	if parsedAddress1[0] != parsedAddress2[0] {
+		return false
+	}
+
+	// Check the chainIDs
+	if parsedAddress1[1] != parsedAddress2[1] {
+		return false
+	}
+
+	// Check the addresses
+	if parsedAddress1[2] != parsedAddress2[2] {
+		return false
+	}
+
+	return true
+}
+
+// ==================== DID Functions ====================
+
+// prepareTransactor creates a transaction auth object with gas price and balance checks.
+// Returns the transactor, DID identifier, and any error that occurred.
+func prepareTransactor(did string, privKey *ecdsa.PrivateKey, bound *BoundedContract) (*bind.TransactOpts, string, error) {
+	splitDID, valid := PrepareDID(did)
+	if !valid {
+		return nil, "", ErrInvalidDID
+	}
+	identifier := splitDID[len(splitDID)-1]
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	price, err := bound.Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return nil, "", err
+	}
+
+	auth.GasPrice = price
+	auth.GasLimit = DefaultGasLimit
+
+	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
+	if err != nil {
+		return nil, "", err
+	}
+
+	requiredBalance := new(big.Int).Mul(price, new(big.Int).SetInt64(DefaultGasLimitInt64))
+	if balance.Cmp(requiredBalance) < 0 {
+		return nil, "", ErrInsufficientBalance
+	}
+
+	return auth, identifier, nil
 }
 
 func GetRegistryInstance(config ContractConfig) (bound *BoundedContract, err error) {
@@ -125,82 +279,21 @@ func generateSolDIDString(pubKey *ed25519.PublicKey, network string) string {
 
 }
 
-// TODO: check that this function can be safely removed. The foundation service doesn't need to create new DID documents; however, some other system may want to import this function
-func CreateDID(publicKey interface{}, bound BoundedContract) *DIDDocument {
-
-	document := new(DIDDocument)
-	loc, _ := time.LoadLocation("UTC")
-
-	document.ID = GenerateDIDString(publicKey, bound.ChainName)
-	document.Context = make([]string, 0)
-	document.Context = append(document.Context, ContextSecp256k1)
-	document.Context = append(document.Context, ContextDID)
-	document.Created = time.Now().In(loc).Format(time.RFC3339)
-	document.Updated = document.Created
-	document.Version = 1
-
-	VM := VerificationMethod{}
-	address := ""
-	if bound.ChainName == "solana" {
-		edPubkey := publicKey.(*ed25519.PublicKey)
-		address = base58.Encode(*edPubkey)
-		VM.BlockchainAccountId = "solana" + ":" + address
-	} else {
-		ecPubkey := publicKey.(*ecdsa.PublicKey)
-		address = crypto.PubkeyToAddress(*ecPubkey).Hex()
-		VM.BlockchainAccountId = "eip155:" + bound.ChainID.String() + ":" + strings.ToLower(address)
-	}
-
-	VM.ID = document.ID + "#controller"
-	VM.Controller = document.ID
-	VM.MethodType = Secp256k1Key
-
-	document.VerificationMethod = append(document.VerificationMethod, VM)
-	document.Authentication = VM.ID
-	document.AssertionMethod = VM.ID
-
-	return document
-}
-
-// TODO: check that this function can be safely removed
-func DocumentToJson(document *DIDDocument) ([]byte, error) {
-	jsonDoc, err := json.Marshal(document)
-	if err != nil {
-		return nil, err
-	}
-	return jsonDoc, nil
-}
-
-// TODO: check that this function can be safely removed
-func JsonToDocument(jsonDoc []byte) (*DIDDocument, error) {
-	document := CreateDIDDocument()
-	err := json.Unmarshal(jsonDoc, document)
-	if err != nil {
-		return nil, err
-	}
-	return document, nil
-}
-
-// check format of DID string
-func IsDIDValid(did []string) bool {
+// ValidateDID checks the format of a DID string and returns an error if invalid.
+func ValidateDID(did []string) error {
 	if len(did) != 3 && len(did) != 4 {
-		fmt.Println("Not exactly 3 or 4 sections in DID")
-		return false
-	}
-	prefix := did[0]
-	if prefix != "did" {
-		fmt.Println("First section of DID was '" + prefix + "' instead of 'did'")
-		return false
+		return ErrDIDWrongSectionCount
 	}
 
-	methodName := did[1]
-	if methodName != "metablox" {
-		fmt.Println("Second section of DID was '" + methodName + "'instead of 'metablox'")
-		return false
+	if did[0] != "did" {
+		return ErrDIDInvalidPrefix
 	}
 
-	chainName := ""
-	identifierSection := ""
+	if did[1] != "metablox" {
+		return ErrDIDInvalidMethodName
+	}
+
+	var chainName, identifierSection string
 	if len(did) == 3 {
 		chainName = "ethereum"
 		identifierSection = did[2]
@@ -208,29 +301,27 @@ func IsDIDValid(did []string) bool {
 		chainName = did[2]
 		identifierSection = did[3]
 	}
-	if !common.IsHexAddress(identifierSection) && chainName != "solana" {
-		fmt.Println("Identifier section is formatted incorrectly")
-		return false
-	}
 
 	if len(identifierSection) == 0 {
-		fmt.Println("Identifier is empty")
-		return false
+		return ErrDIDEmptyIdentifier
 	}
 
-	return true
+	if !common.IsHexAddress(identifierSection) && chainName != "solana" {
+		return ErrDIDInvalidIdentifier
+	}
+
+	return nil
 }
 
-// split did string into 3 sections. First two should be 'did' and 'metablox', last one wil be the identifier
+// SplitDIDString splits did string into sections.
 func SplitDIDString(did string) []string {
 	return strings.Split(did, ":")
 }
 
-// splits did and checks that it is formatted correctly
+// PrepareDID splits did and checks that it is formatted correctly.
 func PrepareDID(did string) ([]string, bool) {
 	splitString := SplitDIDString(did)
-	valid := IsDIDValid(splitString)
-	return splitString, valid
+	return splitString, ValidateDID(splitString) == nil
 }
 
 func GetChainNameFromDID(did string) (string, error) {
@@ -259,18 +350,7 @@ func GetChainNameFromDID(did string) (string, error) {
 	}
 }
 
-func GetDocument(targetAddress string, chainName string) (*DIDDocument, [32]byte, error) {
-
-	bound, err := GetBoundedContract(chainName)
-	if err != nil {
-		return nil, [32]byte{0}, err
-	}
-
-	//txBlk, err := bound.Instance.Changed(nil, common.HexToAddress(targetAddress))
-	//if err != nil {
-	//	return nil, [32]byte{0}, err
-	//}
-
+func GetDocument(targetAddress string, bound *BoundedContract) (*DIDDocument, [32]byte, error) {
 	document := new(DIDDocument)
 	loc, _ := time.LoadLocation("UTC")
 
@@ -320,15 +400,12 @@ func Resolve(did string, options *ResolutionOptions, bound *BoundedContract) (*R
 	}
 
 	targetAddress := ""
-	chainName := ""
 	if len(splitDID) == 3 {
 		targetAddress = splitDID[2]
-		chainName = "ethereum"
 	} else {
 		targetAddress = splitDID[3]
-		chainName = splitDID[2]
 	}
-	generatedDocument, _, err := GetDocument(targetAddress, chainName)
+	generatedDocument, _, err := GetDocument(targetAddress, bound)
 	if err != nil {
 		return &ResolutionMetadata{Error: err.Error()}, nil, nil
 	}
@@ -355,7 +432,7 @@ func Resolve(did string, options *ResolutionOptions, bound *BoundedContract) (*R
 func ResolveRepresentation(did string, options *RepresentationResolutionOptions, bound *BoundedContract) (*RepresentationResolutionMetadata, []byte, *DocumentMetadata) {
 	//Should be similar to Resolve, but returns the document in a specific representation format.
 	//Representation type is included in options and returned in resolution metadata
-	readOptions := CreateResolutionOptions()
+	readOptions := &ResolutionOptions{}
 	readResolutionMeta, document, readDocumentMeta := Resolve(did, readOptions, bound)
 	if readResolutionMeta.Error != "" {
 		return &RepresentationResolutionMetadata{Error: readResolutionMeta.Error}, nil, nil
@@ -374,36 +451,12 @@ func ResolveRepresentation(did string, options *RepresentationResolutionOptions,
 }
 
 func ChangeController(did string, newController common.Address, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
-
-	splitDID, valid := PrepareDID(did)
-	if !valid {
-		return "", ErrInvalidDID
-	}
-	identifiers := splitDID[len(splitDID)-1]
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	auth, identifier, err := prepareTransactor(did, privKey, bound)
 	if err != nil {
 		return "", err
 	}
 
-	price, err := bound.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	auth.GasPrice = price
-	auth.GasLimit = uint64(300000)
-
-	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
-		return "", errors.New("insufficient balance")
-	}
-
-	tx, err := bound.Instance.ChangeController(auth, common.HexToAddress(identifiers), newController)
+	tx, err := bound.Instance.ChangeController(auth, common.HexToAddress(identifier), newController)
 	if err != nil {
 		return "", err
 	}
@@ -411,36 +464,13 @@ func ChangeController(did string, newController common.Address, privKey *ecdsa.P
 	return tx.Hash().Hex(), nil
 }
 
-func ChangeControllerPermit(did string, newController common.Address, privKey *ecdsa.PrivateKey, deadlinne big.Int, signature []byte, bound *BoundedContract) (string, error) {
-	splitDID, valid := PrepareDID(did)
-	if !valid {
-		return "", ErrInvalidDID
-	}
-	identifiers := splitDID[len(splitDID)-1]
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+func ChangeControllerPermit(did string, newController common.Address, privKey *ecdsa.PrivateKey, deadline big.Int, signature []byte, bound *BoundedContract) (string, error) {
+	auth, identifier, err := prepareTransactor(did, privKey, bound)
 	if err != nil {
 		return "", err
 	}
 
-	price, err := bound.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	auth.GasPrice = price
-	auth.GasLimit = uint64(300000)
-
-	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
-		return "", errors.New("insufficient balance")
-	}
-
-	tx, err := bound.Instance.ChangeControllerPermit(auth, common.HexToAddress(identifiers), newController, &deadlinne, signature)
+	tx, err := bound.Instance.ChangeControllerPermit(auth, common.HexToAddress(identifier), newController, &deadline, signature)
 	if err != nil {
 		return "", err
 	}
@@ -449,36 +479,12 @@ func ChangeControllerPermit(did string, newController common.Address, privKey *e
 }
 
 func AddDelegate(did string, delegate common.Address, delegateType [32]byte, validity big.Int, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
-
-	splitDID, valid := PrepareDID(did)
-	if !valid {
-		return "", ErrInvalidDID
-	}
-	identifiers := splitDID[len(splitDID)-1]
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	auth, identifier, err := prepareTransactor(did, privKey, bound)
 	if err != nil {
 		return "", err
 	}
 
-	price, err := bound.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	auth.GasPrice = price
-	auth.GasLimit = uint64(300000)
-
-	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
-		return "", errors.New("insufficient balance")
-	}
-
-	tx, err := bound.Instance.AddDelegate(auth, common.HexToAddress(identifiers), delegateType, delegate, &validity)
+	tx, err := bound.Instance.AddDelegate(auth, common.HexToAddress(identifier), delegateType, delegate, &validity)
 	if err != nil {
 		return "", err
 	}
@@ -487,35 +493,12 @@ func AddDelegate(did string, delegate common.Address, delegateType [32]byte, val
 }
 
 func AddDelegatePermit(did string, delegate common.Address, delegateType [32]byte, validity big.Int, privKey *ecdsa.PrivateKey, deadline big.Int, signature []byte, bound *BoundedContract) (string, error) {
-	splitDID, valid := PrepareDID(did)
-	if !valid {
-		return "", ErrInvalidDID
-	}
-	identifiers := splitDID[len(splitDID)-1]
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	auth, identifier, err := prepareTransactor(did, privKey, bound)
 	if err != nil {
 		return "", err
 	}
 
-	price, err := bound.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	auth.GasPrice = price
-	auth.GasLimit = uint64(300000)
-
-	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
-		return "", errors.New("insufficient balance")
-	}
-
-	tx, err := bound.Instance.AddDelegatePermit(auth, common.HexToAddress(identifiers), delegateType, delegate, &validity, &deadline, signature)
+	tx, err := bound.Instance.AddDelegatePermit(auth, common.HexToAddress(identifier), delegateType, delegate, &validity, &deadline, signature)
 	if err != nil {
 		return "", err
 	}
@@ -524,36 +507,12 @@ func AddDelegatePermit(did string, delegate common.Address, delegateType [32]byt
 }
 
 func RevokeDelegate(did string, delegate common.Address, delegateType [32]byte, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
-
-	splitDID, valid := PrepareDID(did)
-	if !valid {
-		return "", ErrInvalidDID
-	}
-	identifiers := splitDID[len(splitDID)-1]
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	auth, identifier, err := prepareTransactor(did, privKey, bound)
 	if err != nil {
 		return "", err
 	}
 
-	price, err := bound.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	auth.GasPrice = price
-	auth.GasLimit = uint64(300000)
-
-	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
-		return "", errors.New("insufficient balance")
-	}
-
-	tx, err := bound.Instance.RevokeDelegate(auth, common.HexToAddress(identifiers), delegateType, delegate)
+	tx, err := bound.Instance.RevokeDelegate(auth, common.HexToAddress(identifier), delegateType, delegate)
 	if err != nil {
 		return "", err
 	}
@@ -562,35 +521,12 @@ func RevokeDelegate(did string, delegate common.Address, delegateType [32]byte, 
 }
 
 func RevokeDelegatePermit(did string, delegate common.Address, delegateType [32]byte, privKey *ecdsa.PrivateKey, deadline big.Int, signature []byte, bound *BoundedContract) (string, error) {
-	splitDID, valid := PrepareDID(did)
-	if !valid {
-		return "", ErrInvalidDID
-	}
-	identifiers := splitDID[len(splitDID)-1]
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	auth, identifier, err := prepareTransactor(did, privKey, bound)
 	if err != nil {
 		return "", err
 	}
 
-	price, err := bound.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	auth.GasPrice = price
-	auth.GasLimit = uint64(300000)
-
-	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
-		return "", errors.New("insufficient balance")
-	}
-
-	tx, err := bound.Instance.RevokeDelegatePermit(auth, common.HexToAddress(identifiers), delegateType, delegate, &deadline, signature)
+	tx, err := bound.Instance.RevokeDelegatePermit(auth, common.HexToAddress(identifier), delegateType, delegate, &deadline, signature)
 	if err != nil {
 		return "", err
 	}
@@ -599,36 +535,12 @@ func RevokeDelegatePermit(did string, delegate common.Address, delegateType [32]
 }
 
 func ChangeAttribute(did string, attribute [32]byte, attributeValue []byte, validity big.Int, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
-
-	splitDID, valid := PrepareDID(did)
-	if !valid {
-		return "", ErrInvalidDID
-	}
-	identifiers := splitDID[len(splitDID)-1]
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	auth, identifier, err := prepareTransactor(did, privKey, bound)
 	if err != nil {
 		return "", err
 	}
 
-	price, err := bound.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	auth.GasPrice = price
-	auth.GasLimit = uint64(300000)
-
-	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
-		return "", errors.New("insufficient balance")
-	}
-
-	tx, err := bound.Instance.SetAttribute(auth, common.HexToAddress(identifiers), attribute, attributeValue, &validity)
+	tx, err := bound.Instance.SetAttribute(auth, common.HexToAddress(identifier), attribute, attributeValue, &validity)
 	if err != nil {
 		return "", err
 	}
@@ -637,35 +549,12 @@ func ChangeAttribute(did string, attribute [32]byte, attributeValue []byte, vali
 }
 
 func ChangeAttributePermit(did string, attribute [32]byte, attributeValue []byte, validity big.Int, privKey *ecdsa.PrivateKey, deadline big.Int, signature []byte, bound *BoundedContract) (string, error) {
-	splitDID, valid := PrepareDID(did)
-	if !valid {
-		return "", ErrInvalidDID
-	}
-	identifiers := splitDID[len(splitDID)-1]
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	auth, identifier, err := prepareTransactor(did, privKey, bound)
 	if err != nil {
 		return "", err
 	}
 
-	price, err := bound.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	auth.GasPrice = price
-	auth.GasLimit = uint64(300000)
-
-	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
-		return "", errors.New("insufficient balance")
-	}
-
-	tx, err := bound.Instance.SetAttributePermit(auth, common.HexToAddress(identifiers), attribute, attributeValue, &validity, &deadline, signature)
+	tx, err := bound.Instance.SetAttributePermit(auth, common.HexToAddress(identifier), attribute, attributeValue, &validity, &deadline, signature)
 	if err != nil {
 		return "", err
 	}
@@ -674,35 +563,12 @@ func ChangeAttributePermit(did string, attribute [32]byte, attributeValue []byte
 }
 
 func RevokeAttribute(did string, attribute [32]byte, attributeValue []byte, privKey *ecdsa.PrivateKey, bound *BoundedContract) (string, error) {
-	splitDID, valid := PrepareDID(did)
-	if !valid {
-		return "", ErrInvalidDID
-	}
-	identifiers := splitDID[len(splitDID)-1]
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	auth, identifier, err := prepareTransactor(did, privKey, bound)
 	if err != nil {
 		return "", err
 	}
 
-	price, err := bound.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	auth.GasPrice = price
-	auth.GasLimit = uint64(300000)
-
-	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
-		return "", errors.New("insufficient balance")
-	}
-
-	tx, err := bound.Instance.RevokeAttribute(auth, common.HexToAddress(identifiers), attribute, attributeValue)
+	tx, err := bound.Instance.RevokeAttribute(auth, common.HexToAddress(identifier), attribute, attributeValue)
 	if err != nil {
 		return "", err
 	}
@@ -711,35 +577,12 @@ func RevokeAttribute(did string, attribute [32]byte, attributeValue []byte, priv
 }
 
 func RevokeAttributePermit(did string, attribute [32]byte, attributeValue []byte, privKey *ecdsa.PrivateKey, deadline big.Int, signature []byte, bound *BoundedContract) (string, error) {
-	splitDID, valid := PrepareDID(did)
-	if !valid {
-		return "", ErrInvalidDID
-	}
-	identifiers := splitDID[len(splitDID)-1]
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privKey, bound.ChainID)
+	auth, identifier, err := prepareTransactor(did, privKey, bound)
 	if err != nil {
 		return "", err
 	}
 
-	price, err := bound.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	auth.GasPrice = price
-	auth.GasLimit = uint64(300000)
-
-	balance, err := bound.Client.BalanceAt(context.Background(), auth.From, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if balance.Cmp(new(big.Int).Mul(price, new(big.Int).SetInt64(300000))) < 0 {
-		return "", errors.New("insufficient balance")
-	}
-
-	tx, err := bound.Instance.RevokeAttributePermit(auth, common.HexToAddress(identifiers), attribute, attributeValue, &deadline, signature)
+	tx, err := bound.Instance.RevokeAttributePermit(auth, common.HexToAddress(identifier), attribute, attributeValue, &deadline, signature)
 	if err != nil {
 		return "", err
 	}
