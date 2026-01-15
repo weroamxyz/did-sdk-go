@@ -19,4 +19,12 @@ var (
 	ErrUnknownChainID        = errors.New("provided Chain ID is invalid")
 	ErrUnknownChainName      = errors.New("provided Chain Name is invalid")
 	ErrUnsupportedKeyType    = errors.New("provided key type is not supported on this chain")
+	ErrInsufficientBalance   = errors.New("insufficient balance for transaction")
+
+	// DID validation errors
+	ErrDIDWrongSectionCount = errors.New("DID must have exactly 3 or 4 sections")
+	ErrDIDInvalidPrefix     = errors.New("DID must start with 'did'")
+	ErrDIDInvalidMethodName = errors.New("DID method name must be 'metablox'")
+	ErrDIDInvalidIdentifier = errors.New("DID identifier section is formatted incorrectly")
+	ErrDIDEmptyIdentifier   = errors.New("DID identifier is empty")
 )
